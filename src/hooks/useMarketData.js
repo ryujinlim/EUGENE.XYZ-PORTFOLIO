@@ -1,53 +1,94 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import { TICKERS } from '../config/tickers'
 
-const SYMBOLS = [
-  { key: 'vix', symbol: '^VIX', decimals: 2, suffix: '' },
-  { key: 'spy', symbol: 'SPY',  decimals: 1, suffix: '' },
-  { key: 'tny', symbol: '^TNX', decimals: 2, suffix: '%' },
-]
+const LS_KEY = 'eugene-ticker-cache'
 
-async function fetchQuote(symbol) {
-  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(yahooUrl)}`
-  const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) })
-  if (!res.ok) throw new Error('proxy error')
-  const json = await res.json()
-  const data = JSON.parse(json.contents)
-  const meta = data?.chart?.result?.[0]?.meta
-  if (!meta) throw new Error('no data')
-  const price = meta.regularMarketPrice
-  const prev  = meta.chartPreviousClose ?? meta.regularMarketPreviousClose ?? price
-  return { price, change: price - prev }
+// ── Module-level singleton — one fetch shared across all hook instances ────
+let moduleData    = null
+let moduleLoading = true
+const subscribers = new Set()
+
+// Seed from localStorage immediately so components render cached data on mount
+try {
+  const cached = localStorage.getItem(LS_KEY)
+  if (cached) {
+    moduleData    = JSON.parse(cached)
+    moduleLoading = false
+  }
+} catch { /* ignore */ }
+
+let fetchPromise = null
+
+async function fetchAll() {
+  if (fetchPromise) return fetchPromise
+  fetchPromise = fetch('/api/tickers')
+    .then((res) => (res.ok ? res.json() : Promise.reject()))
+    .then((data) => {
+      moduleData    = data
+      moduleLoading = false
+      try { localStorage.setItem(LS_KEY, JSON.stringify(data)) } catch { /* ignore */ }
+      subscribers.forEach((fn) => fn({ data, loading: false }))
+    })
+    .catch(() => {
+      moduleLoading = false
+      subscribers.forEach((fn) => fn({ data: moduleData, loading: false }))
+    })
+    .finally(() => { fetchPromise = null })
+  return fetchPromise
 }
 
-export function useMarketData() {
-  const [tickers, setTickers] = useState(null)
-  const [loading, setLoading] = useState(true)
+// ── Symbol → backwards-compat key (for NavBar) ────────────────────────────
+const SYMBOL_TO_KEY = { '^VIX': 'vix', 'SPY': 'spy', '^TNX': 'tny' }
 
-  const fetchAll = useCallback(async () => {
-    const results = await Promise.allSettled(
-      SYMBOLS.map(({ symbol }) => fetchQuote(symbol))
-    )
-    const next = {}
-    let any = false
-    results.forEach((r, i) => {
-      if (r.status === 'fulfilled') {
-        const { key, decimals, suffix } = SYMBOLS[i]
-        const { price, change } = r.value
-        next[key] = { value: price.toFixed(decimals) + suffix, positive: change >= 0 }
-        any = true
-      }
-    })
-    if (any) setTickers(next)
-    setLoading(false)
-  }, [])
+export function useMarketData() {
+  const [state, setState] = useState({ data: moduleData, loading: moduleLoading })
 
   useEffect(() => {
+    const listener = (next) => setState(next)
+    subscribers.add(listener)
     fetchAll()
     const id = setInterval(fetchAll, 60_000)
-    return () => clearInterval(id)
-  }, [fetchAll])
+    return () => {
+      subscribers.delete(listener)
+      clearInterval(id)
+    }
+  }, [])
 
-  // backwards-compat: vix field for mobile menu
-  return { vix: tickers?.vix?.value ?? null, tickers, loading }
+  const { data, loading } = state
+
+  // Backwards-compat `tickers` map for NavBar { vix, spy, tny }
+  const tickers = data ? (() => {
+    const map = {}
+    data.forEach((item) => {
+      const key    = SYMBOL_TO_KEY[item.symbol]
+      if (!key || item.price == null) return
+      const config = TICKERS.find((t) => t.symbol === item.symbol)
+      if (!config) return
+      const suffix = key === 'tny' ? '%' : ''
+      map[key] = { value: item.price.toFixed(config.decimals) + suffix, positive: item.change >= 0 }
+    })
+    return Object.keys(map).length > 0 ? map : null
+  })() : null
+
+  // Full formatted array for the marquee bar
+  const marqueeData = data ? data.map((item) => {
+    const config = TICKERS.find((t) => t.symbol === item.symbol)
+    if (!config || item.price == null) return null
+    return {
+      symbol:    item.symbol,
+      label:     config.label,
+      price:     item.price,
+      change:    item.change,
+      changePct: item.changePct,
+      decimals:  config.decimals,
+      positive:  item.change >= 0,
+    }
+  }).filter(Boolean) : null
+
+  return {
+    vix: tickers?.vix?.value ?? null, // backwards compat for mobile menu
+    tickers,
+    loading,
+    marqueeData,
+  }
 }

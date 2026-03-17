@@ -1,3 +1,4 @@
+import { track } from '@vercel/analytics'
 import RevealSection   from '../components/RevealSection'
 import HoverLink       from '../components/HoverLink'
 import ScrambleHeading from '../components/ScrambleHeading'
@@ -31,6 +32,7 @@ export default function Contact() {
               <HoverLink
                 href="mailto:eugenelimty@gmail.com"
                 aria-label="Email Eugene Lim"
+                onClick={() => track('contact_cta_click')}
                 className="font-sans text-label text-muted tracking-label uppercase"
               >
                 eugenelimty@gmail.com

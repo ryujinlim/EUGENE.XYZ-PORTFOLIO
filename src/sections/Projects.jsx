@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { track } from '@vercel/analytics'
 import RevealSection   from '../components/RevealSection'
 import ScrambleHeading from '../components/ScrambleHeading'
 import Tag             from '../components/Tag'
@@ -79,6 +80,7 @@ function ProjectCard({ title, description, tags, href, index }) {
       onMouseEnter={() => setHovered(true)}
       onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}
+      onClick={() => track('project_click', { project: title })}
       className="flex flex-col gap-4 p-7 no-underline"
       style={{
         background:      spotlightBg,

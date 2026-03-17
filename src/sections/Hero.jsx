@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import AnimatedText    from '../components/AnimatedText'
 import HoverLink       from '../components/HoverLink'
 import MagneticWrapper from '../components/MagneticWrapper'
+import { track } from '@vercel/analytics'
 
 export default function Hero() {
   const [bioVisible,   setBioVisible]   = useState(false)
@@ -121,6 +122,7 @@ export default function Hero() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Eugene Lim on LinkedIn"
+              onClick={() => track('social_click', { platform: 'linkedin' })}
               className="font-sans text-label text-muted tracking-label uppercase"
             >
               LinkedIn
@@ -133,6 +135,7 @@ export default function Hero() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Eugene Lim on GitHub"
+              onClick={() => track('social_click', { platform: 'github' })}
               className="font-sans text-label text-muted tracking-label uppercase"
             >
               GitHub
@@ -143,6 +146,7 @@ export default function Hero() {
             <HoverLink
               href="mailto:eugenelimty@gmail.com"
               aria-label="Email Eugene Lim"
+              onClick={() => track('social_click', { platform: 'email' })}
               className="font-sans text-label text-muted tracking-label uppercase"
             >
               Email

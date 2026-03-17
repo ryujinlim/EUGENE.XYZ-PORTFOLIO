@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react'
+import { track } from '@vercel/analytics'
 import RevealSection   from '../components/RevealSection'
 import HoverLink       from '../components/HoverLink'
 import ScrambleHeading from '../components/ScrambleHeading'
@@ -29,8 +31,29 @@ function WaveformDeco() {
 }
 
 export default function Music() {
+  const sectionRef  = useRef(null)
+  const trackedRef  = useRef(false)
+
+  useEffect(() => {
+    const el = sectionRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !trackedRef.current) {
+          trackedRef.current = true
+          track('music_section_viewed')
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.3 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <section
+      ref={sectionRef}
       id="music"
       aria-label="Music"
       className="py-32 md:py-40"

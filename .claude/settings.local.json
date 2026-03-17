@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(grep -E \"\\\\.\\(jsx|tsx|js|ts|css|json\\)$\")",
+      "Bash(find /c/Users/slimm/Desktop/EUGENE.XYZ-PORTFOLIO -not -path */node_modules* -not -path */dist* -not -path */.git* -type f)",
+      "Bash(/tmp/tree_output.txt:*)",
+      "Read(//tmp/**)"
     ]
   }
 }

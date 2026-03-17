@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import HoverLink from './HoverLink'
 import { useMarketData } from '../hooks/useMarketData'
+import { TICKERS } from '../config/tickers'
+import { track } from '@vercel/analytics'
 
 const NAV_LINKS = [
   { label: 'Experience', href: '#experience' },
@@ -9,11 +11,8 @@ const NAV_LINKS = [
   { label: 'Contact',    href: '#contact' },
 ]
 
-const TICK_DEFS = [
-  { key: 'vix', label: 'VIX' },
-  { key: 'spy', label: 'SPY' },
-  { key: 'tny', label: '10Y' },
-]
+const SYMBOL_TO_KEY = { '^VIX': 'vix', 'SPY': 'spy', '^TNX': 'tny' }
+const TICK_DEFS = TICKERS.slice(0, 3).map((t) => ({ key: SYMBOL_TO_KEY[t.symbol], label: t.label }))
 
 /* ── Theme Toggle ─────────────────────────────────────────────────────────── */
 function ThemeToggle() {
@@ -26,6 +25,7 @@ function ThemeToggle() {
 
   const toggle = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
+    track('theme_toggle', { theme: next })
     const html  = document.documentElement
     html.style.transition = 'background-color 400ms ease, color 400ms ease'
     html.classList.remove('dark', 'light')
@@ -113,6 +113,13 @@ export default function NavBar() {
   const [mounted,  setMounted]  = useState(false)
   const { vix, tickers, loading } = useMarketData()
 
+  const handleNavClick = (e, href) => {
+    if (window.lenis) {
+      e.preventDefault()
+      window.lenis.scrollTo(href)
+    }
+  }
+
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 50)
     return () => clearTimeout(t)
@@ -150,6 +157,7 @@ export default function NavBar() {
           <HoverLink
             href="#home"
             aria-label="Eugene Lim — Home"
+            onClick={(e) => handleNavClick(e, '#home')}
             className="font-serif text-[20px] font-light text-text tracking-wide"
           >
             EL
@@ -167,6 +175,7 @@ export default function NavBar() {
               <li key={href}>
                 <HoverLink
                   href={href}
+                  onClick={(e) => handleNavClick(e, href)}
                   className="font-sans text-small text-muted tracking-wide"
                 >
                   {label}
@@ -219,7 +228,7 @@ export default function NavBar() {
               <a
                 href={href}
                 className="font-serif font-light text-[clamp(32px,6vw,48px)] text-text hover:text-accent transition-colors duration-200"
-                onClick={() => setMenuOpen(false)}
+                onClick={(e) => { setMenuOpen(false); handleNavClick(e, href) }}
               >
                 {label}
               </a>

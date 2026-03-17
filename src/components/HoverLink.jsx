@@ -8,6 +8,7 @@ export default function HoverLink({
   className = '',
   target,
   rel,
+  onClick,
   'aria-label': ariaLabel,
 }) {
   return (
@@ -16,6 +17,7 @@ export default function HoverLink({
       target={target}
       rel={rel}
       aria-label={ariaLabel}
+      onClick={onClick}
       className={`hover-link focus-visible:outline-accent ${className}`}
     >
       {children}

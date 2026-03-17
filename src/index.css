@@ -239,6 +239,20 @@ body {
   animation: hero-glitch 120ms linear 1;
 }
 
+/* ─── Ticker Marquee ─────────────────────────────────────────────────────── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-33.333%); }
+}
+
+.ticker-track {
+  animation: marquee 40s linear infinite;
+}
+
+.ticker-bar:hover .ticker-track {
+  animation-play-state: paused;
+}
+
 /* ─── Reduced Motion Override ────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   * {

@@ -1,5 +1,6 @@
 import './App.css'
 import NavBar        from './components/NavBar'
+import TickerMarquee from './components/TickerMarquee'
 import CustomCursor  from './components/CustomCursor'
 import ScrollProgress from './components/ScrollProgress'
 import Hero          from './sections/Hero'
@@ -15,6 +16,7 @@ export default function App() {
       <CustomCursor />
       <ScrollProgress />
       <NavBar />
+      <TickerMarquee />
       <main>
         <Hero />
         <About />
