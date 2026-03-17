@@ -73,7 +73,7 @@ export default function Contact() {
       >
         <div className="max-w-6xl mx-auto px-6 md:px-16 flex items-center justify-between flex-wrap gap-4">
           <span className="font-mono text-label text-muted tracking-label">
-            Eugene Lim &nbsp;·&nbsp; © 2025
+            Eugene Lim &nbsp;·&nbsp; © {new Date().getFullYear()}
           </span>
           <span className="font-mono text-label text-muted tracking-label">
             Built with intention.

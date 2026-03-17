@@ -15,13 +15,14 @@ export function useScrollReveal(threshold = 0.15, delay = 0) {
       return
     }
 
+    let timerId = null
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           if (delay > 0) {
-            const timer = setTimeout(() => setIsVisible(true), delay)
+            timerId = setTimeout(() => setIsVisible(true), delay)
             observer.disconnect()
-            return () => clearTimeout(timer)
           } else {
             setIsVisible(true)
             observer.disconnect()
@@ -34,7 +35,10 @@ export function useScrollReveal(threshold = 0.15, delay = 0) {
     const el = ref.current
     if (el) observer.observe(el)
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      if (timerId) clearTimeout(timerId)
+    }
   }, [threshold, delay])
 
   return { ref, isVisible }

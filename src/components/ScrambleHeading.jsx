@@ -11,7 +11,7 @@ export default function ScrambleHeading({
   style     = {},
   as: Tag   = 'h2',
 }) {
-  const { ref, scramble } = useScramble(text)
+  const { ref, scramble, cancel } = useScramble(text)
 
   useEffect(() => {
     const el = ref.current
@@ -26,8 +26,8 @@ export default function ScrambleHeading({
       { threshold: 0.2 }
     )
     observer.observe(el)
-    return () => observer.disconnect()
-  }, [scramble, ref])
+    return () => { observer.disconnect(); cancel() }
+  }, [scramble, cancel, ref])
 
   return (
     <Tag ref={ref} className={className} style={style}>

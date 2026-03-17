@@ -39,27 +39,19 @@ export default function TickerMarquee() {
     alignItems:   'center',
   }
 
-  if (!marqueeData || marqueeData.length === 0) {
-    return (
-      <div className="hidden md:flex" style={barStyle}>
-        <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-muted)', fontSize: '11px', paddingLeft: '16px', opacity: loading ? 1 : 0 }}>
-          ···
-        </span>
-      </div>
-    )
-  }
-
   return (
     <div className="ticker-bar hidden md:flex" style={barStyle}>
-      {/* 3 copies for seamless CSS marquee loop */}
       <div className="ticker-track" style={{ display: 'inline-flex', whiteSpace: 'nowrap', willChange: 'transform' }}>
-        {[0, 1, 2].map((copy) => (
-          <span key={copy} style={{ display: 'inline-flex' }}>
-            {marqueeData.map((item, i) => (
-              <TickerItem key={`${copy}-${i}`} item={item} />
-            ))}
-          </span>
-        ))}
+        {(!marqueeData || marqueeData.length === 0)
+          ? <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-muted)', fontSize: '11px', paddingLeft: '16px', opacity: loading ? 1 : 0 }}>···</span>
+          : [0, 1, 2].map((copy) => (
+              <span key={copy} aria-hidden={copy > 0 ? 'true' : undefined} style={{ display: 'inline-flex' }}>
+                {marqueeData.map((item, i) => (
+                  <TickerItem key={`${copy}-${i}`} item={item} />
+                ))}
+              </span>
+            ))
+        }
       </div>
     </div>
   )

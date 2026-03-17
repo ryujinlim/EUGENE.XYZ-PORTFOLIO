@@ -75,8 +75,7 @@ function ProjectCard({ title, description, tags, href, index }) {
       href={href}
       data-cursor-card
       aria-label={`${title} project`}
-      target="_blank"
-      rel="noopener noreferrer"
+      {...(href !== '#' && { target: '_blank', rel: 'noopener noreferrer' })}
       onMouseEnter={() => setHovered(true)}
       onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}

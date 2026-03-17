@@ -30,13 +30,19 @@ export function useScramble(text) {
         if (charProgress >= 1) return ch
         return CHARS[Math.floor(Math.random() * CHARS.length)]
       })
-      el.textContent = result.join('')
+      if (!elRef.current) { clearInterval(timerRef.current); return }
+      elRef.current.textContent = result.join('')
       if (frame >= totalFrames) {
         clearInterval(timerRef.current)
-        el.textContent = text
+        elRef.current.textContent = text
       }
     }, INTERVAL_MS)
   }, [text])
 
-  return { ref: elRef, scramble }
+  const cancel = useCallback(() => {
+    clearInterval(timerRef.current)
+    if (elRef.current) elRef.current.textContent = text
+  }, [text])
+
+  return { ref: elRef, scramble, cancel }
 }
