@@ -1,0 +1,250 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design Tokens: Dark (default) ─────────────────────────────────────── */
+:root,
+.dark {
+  --color-bg:           #0A0A0A;
+  --color-surface:      #111111;
+  --color-surface-2:    #161616;
+  --color-text:         #F0EDE6;
+  --color-muted:        #6B6B6B;
+  --color-accent:       #C9A84C;
+  --color-accent-hover: #D4A853;
+  --color-border:       rgba(255, 255, 255, 0.08);
+
+  --color-text-75:       rgba(240, 237, 230, 0.75);
+  --color-text-60:       rgba(240, 237, 230, 0.60);
+  --color-nav-bg:        rgba(10, 10, 10, 0.85);
+  --color-overlay:       rgba(10, 10, 10, 0.97);
+  --orb-bg:              radial-gradient(circle, rgba(201,168,76,0.028) 0%, rgba(201,168,76,0.008) 40%, transparent 70%);
+  --cursor-ring-color:   rgba(201, 168, 76, 0.6);
+  --cursor-ring-link-bg: rgba(201, 168, 76, 0.06);
+
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-sans:  'Inter', system-ui, sans-serif;
+  --font-mono:  'JetBrains Mono', monospace;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 200ms;
+  --duration-base: 450ms;
+  --duration-slow: 750ms;
+}
+
+/* ─── Design Tokens: Light ───────────────────────────────────────────────── */
+.light {
+  --color-bg:           #F5F2EB;
+  --color-surface:      #EDE9E0;
+  --color-surface-2:    #E4DFD4;
+  --color-text:         #1A1814;
+  --color-muted:        #7A7168;
+  --color-accent:       #A67C2E;
+  --color-accent-hover: #B8860B;
+  --color-border:       rgba(0, 0, 0, 0.10);
+
+  --color-text-75:       rgba(26, 24, 20, 0.75);
+  --color-text-60:       rgba(26, 24, 20, 0.60);
+  --color-nav-bg:        rgba(245, 242, 235, 0.85);
+  --color-overlay:       rgba(26, 24, 20, 0.95);
+  --orb-bg:              radial-gradient(circle, rgba(166,124,46,0.06) 0%, rgba(166,124,46,0.03) 40%, transparent 70%);
+  --cursor-ring-color:   rgba(166, 124, 46, 0.6);
+  --cursor-ring-link-bg: rgba(166, 124, 46, 0.06);
+}
+
+/* ─── Base Reset ─────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--color-bg);
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  overflow-x: hidden;
+}
+
+/* ─── Custom Cursor — hide native on fine pointer devices ────────────────── */
+@media (pointer: fine) {
+  body,
+  a,
+  button {
+    cursor: none;
+  }
+  input,
+  textarea,
+  select {
+    cursor: auto;
+  }
+}
+
+/* ─── Focus Styles ───────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+/* ─── HoverLink Underline Animation ─────────────────────────────────────── */
+.hover-link {
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+}
+
+.hover-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: var(--color-accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 250ms ease;
+}
+
+.hover-link:hover::after {
+  transform: scaleX(1);
+}
+
+/* ─── Custom Cursor Elements ─────────────────────────────────────────────── */
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  will-change: left, top;
+}
+
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--color-accent);
+  transition:
+    width 200ms var(--ease-out-expo),
+    height 200ms var(--ease-out-expo),
+    opacity 200ms ease;
+}
+
+.cursor-ring {
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--cursor-ring-color);
+  background: transparent;
+  transition:
+    width 300ms var(--ease-out-expo),
+    height 300ms var(--ease-out-expo),
+    border-color 300ms ease,
+    background 300ms ease,
+    border-style 200ms ease,
+    opacity 200ms ease;
+}
+
+/* Link / button hover */
+.cursor-dot.cursor-link {
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+.cursor-ring.cursor-link {
+  width: 60px;
+  height: 60px;
+  border-color: var(--color-accent);
+  background: var(--cursor-ring-link-bg);
+}
+
+/* Project card hover */
+.cursor-ring.cursor-card {
+  width: 80px;
+  height: 80px;
+  border-style: dashed;
+}
+
+/* Body text hover */
+.cursor-ring.cursor-text {
+  width: 16px;
+  height: 16px;
+  opacity: 0.4;
+}
+
+/* Clicking */
+.cursor-dot.cursor-clicking {
+  width: 12px;
+  height: 12px;
+}
+.cursor-ring.cursor-clicking {
+  width: 28px;
+  height: 28px;
+}
+
+/* ─── Ambient Orb Animation ──────────────────────────────────────────────── */
+@keyframes drift {
+  0%   { transform: scale(1); }
+  100% { transform: scale(1.15); }
+}
+
+.ambient-orb {
+  animation: drift 12s ease-in-out infinite alternate;
+}
+
+/* ─── VIX Pulse ──────────────────────────────────────────────────────────── */
+@keyframes pulse-opacity {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1; }
+}
+
+.market-pulse {
+  animation: pulse-opacity 2s ease-in-out 1;
+}
+
+/* ─── Waveform decoration ────────────────────────────────────────────────── */
+@keyframes waveform-pulse {
+  0%, 100% { opacity: 0.06; }
+  50%       { opacity: 0.12; }
+}
+
+.waveform-deco {
+  animation: waveform-pulse 4s ease-in-out infinite;
+}
+
+/* ─── Hero Name Glitch ───────────────────────────────────────────────────── */
+@keyframes hero-glitch {
+  0%   { transform: none; color: inherit; }
+  15%  { transform: skewX(0.5deg); color: var(--color-accent); }
+  30%  { transform: none; color: inherit; }
+  55%  { transform: skewX(-0.4deg); color: var(--color-accent); }
+  70%  { transform: none; color: inherit; }
+  85%  { transform: skewX(0.3deg); color: var(--color-accent); }
+  100% { transform: none; color: inherit; }
+}
+
+.hero-glitch-active {
+  animation: hero-glitch 120ms linear 1;
+}
+
+/* ─── Reduced Motion Override ────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
