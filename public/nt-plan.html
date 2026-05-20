@@ -23,10 +23,10 @@
       --radius: 18px;
       --radius-sm: 10px;
       /* time-of-day gradient stops — updated by JS */
-      --grad-1: #e3e9ee;
-      --grad-2: #dfe6ec;
-      --grad-3: #e6ecf0;
-      --grad-4: #e3e9ee;
+      --grad-1: #ccd8f0;
+      --grad-2: #c8d4ec;
+      --grad-3: #d0d8f0;
+      --grad-4: #ccd8f0;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     @keyframes bg-breathe {
@@ -413,15 +413,15 @@ async function writePath(path, value) {
 
 // ── Time-of-day gradient ──────────────────────────────────────────
 const TIME_THEMES = [
-  { h:[0,5],  c:['#e2e4ee','#dcdfe9','#dfe2ec','#e2e4ee'], accent:'#686b96', label:'night'       },
-  { h:[5,7],  c:['#ede8e0','#e8e0d5','#f0e8de','#ede8e0'], accent:'#8a7060', label:'dawn'        },
-  { h:[7,10], c:['#e8ece3','#e4e8df','#ecefe8','#e8ece3'], accent:'#587258', label:'morning'     },
-  { h:[10,13],c:['#e3e9ee','#dfe6ec','#e6ecf0','#e3e9ee'], accent:'#4a7080', label:'midday'      },
-  { h:[13,16],c:['#eee8e0','#e8e0d4','#ece6da','#eee8e0'], accent:'#7a6848', label:'afternoon'   },
-  { h:[16,18],c:['#ede4d2','#e8dcc6','#ecddd0','#ede4d2'], accent:'#906040', label:'golden hour' },
-  { h:[18,20],c:['#ece3dd','#e6dbd4','#e8ddd8','#ece3dd'], accent:'#885060', label:'sunset'      },
-  { h:[20,22],c:['#e4dfe9','#ddd8e6','#e0dcea','#e4dfe9'], accent:'#604878', label:'dusk'        },
-  { h:[22,24],c:['#e2e4ee','#dcdfe9','#dfe2ec','#e2e4ee'], accent:'#686b96', label:'night'       },
+  { h:[0,5],  c:['#ccd4e8','#c4cce0','#c8d2e8','#ccd4e8'], accent:'#4a5a8a', label:'night'       },
+  { h:[5,7],  c:['#ccd8ec','#c8d4e8','#d0d8ec','#ccd8ec'], accent:'#4668a0', label:'dawn'        },
+  { h:[7,10], c:['#d4e0f2','#ccdaf0','#d0dcf0','#d4e0f2'], accent:'#3860a0', label:'morning'     },
+  { h:[10,13],c:['#ccd8f0','#c8d4ec','#d0d8f0','#ccd8f0'], accent:'#3460b0', label:'midday'      },
+  { h:[13,16],c:['#c8d2e8','#c4cee4','#ccd4ec','#c8d2e8'], accent:'#4060a0', label:'afternoon'   },
+  { h:[16,18],c:['#c0cce0','#bcc8dc','#c4cce0','#c0cce0'], accent:'#3850a0', label:'golden hour' },
+  { h:[18,20],c:['#b8c4dc','#b4c0d8','#bcc4dc','#b8c4dc'], accent:'#304898', label:'sunset'      },
+  { h:[20,22],c:['#b4bcd8','#b0b8d4','#b8bcd8','#b4bcd8'], accent:'#2a4090', label:'dusk'        },
+  { h:[22,24],c:['#ccd4e8','#c4cce0','#c8d2e8','#ccd4e8'], accent:'#4a5a8a', label:'night'       },
 ];
 
 let currentThemeLabel = '';
@@ -467,10 +467,10 @@ function getMoonPhase() {
 
 async function fetchWeather() {
   try {
-    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=42.3601&longitude=-71.0589&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=America%2FNew_York');
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=42.3601&longitude=-71.0589&current=temperature_2m,weather_code&temperature_unit=celsius&timezone=America%2FNew_York');
     const j = await r.json();
     const w = wmoToWeather(j.current.weather_code);
-    weatherState = { tempF: Math.round(j.current.temperature_2m), ...w };
+    weatherState = { temp: Math.round(j.current.temperature_2m), ...w };
     applyTimeTheme(); // re-tint with weather
   } catch (e) { console.warn('Weather fetch failed:', e); }
 }
@@ -480,7 +480,7 @@ function renderAmbientStrip() {
   if (!el) return;
   const moon = getMoonPhase();
   const parts = [moon.emoji + ' ' + moon.name];
-  if (weatherState) parts.push(`boston ${weatherState.tempF}°f ${weatherState.emoji} ${weatherState.label}`);
+  if (weatherState) parts.push(`boston ${weatherState.temp}°c ${weatherState.emoji} ${weatherState.label}`);
   if (currentThemeLabel) parts.push(currentThemeLabel);
   el.textContent = parts.join('  ·  ');
 }
