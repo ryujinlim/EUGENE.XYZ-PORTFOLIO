@@ -378,15 +378,15 @@ async function writePath(path, value) {
 
 // ── Time-of-day gradient ──────────────────────────────────────────
 const TIME_THEMES = [
-  { h:[0,5],  c:['#dde1ff','#e8d5f5','#c8d5f5','#dde1ff'] }, // night  — soft indigo/lavender
-  { h:[5,7],  c:['#ffecd2','#ffd1dc','#fce4ec','#ffecd2'] }, // dawn   — peach/blush
-  { h:[7,10], c:['#fffde7','#fff8e1','#fef9c3','#fffde7'] }, // morning — warm gold cream
-  { h:[10,13],c:['#e8f5e9','#e3f2fd','#f1f8e9','#e3f2fd'] }, // midday — mint/sky
-  { h:[13,16],c:['#fff8e1','#fce4ec','#fff3e0','#fff8e1'] }, // afternoon — warm soft
-  { h:[16,18],c:['#fff9c4','#ffe0b2','#ffccbc','#fff9c4'] }, // golden hour — amber/sand
-  { h:[18,20],c:['#ffccbc','#f8bbd0','#e9d5ff','#ffccbc'] }, // sunset — coral/rose/lavender
-  { h:[20,22],c:['#e1bee7','#c5cae9','#b3e5fc','#e1bee7'] }, // dusk   — mauve/periwinkle
-  { h:[22,24],c:['#dde1ff','#e8d5f5','#c8d5f5','#dde1ff'] }, // night
+  { h:[0,5],  c:['#dde1ff','#e8d5f5','#c8d5f5','#dde1ff'], accent:'#7c6af6' }, // night
+  { h:[5,7],  c:['#ffecd2','#ffd1dc','#fce4ec','#ffecd2'], accent:'#d4737d' }, // dawn
+  { h:[7,10], c:['#fffde7','#fff8e1','#fef9c3','#fffde7'], accent:'#b8860b' }, // morning
+  { h:[10,13],c:['#e8f5e9','#e3f2fd','#f1f8e9','#e3f2fd'], accent:'#3a8fa3' }, // midday
+  { h:[13,16],c:['#fff8e1','#fce4ec','#fff3e0','#fff8e1'], accent:'#c4855a' }, // afternoon
+  { h:[16,18],c:['#fff9c4','#ffe0b2','#ffccbc','#fff9c4'], accent:'#c47c2a' }, // golden hour
+  { h:[18,20],c:['#ffccbc','#f8bbd0','#e9d5ff','#ffccbc'], accent:'#c4566a' }, // sunset
+  { h:[20,22],c:['#e1bee7','#c5cae9','#b3e5fc','#e1bee7'], accent:'#6b7fd4' }, // dusk
+  { h:[22,24],c:['#dde1ff','#e8d5f5','#c8d5f5','#dde1ff'], accent:'#7c6af6' }, // night
 ];
 
 function applyTimeTheme() {
@@ -394,6 +394,7 @@ function applyTimeTheme() {
   const theme = TIME_THEMES.find(t => h >= t.h[0] && h < t.h[1]) || TIME_THEMES[0];
   const root = document.documentElement;
   theme.c.forEach((col, i) => root.style.setProperty(`--grad-${i+1}`, col));
+  root.style.setProperty('--accent', theme.accent);
 }
 
 async function init() {
@@ -523,12 +524,12 @@ function renderSetup() {
     <div onclick="selectSlot(${slot})" style="
       flex:1; min-width:0; text-align:center; cursor:pointer;
       background:rgba(255,255,255,0.88); backdrop-filter:blur(10px);
-      border:2px solid ${sel ? '#111' : 'rgba(0,0,0,0.1)'};
+      border:2px solid ${sel ? 'var(--accent)' : 'rgba(0,0,0,0.1)'};
       border-radius:18px; padding:24px 14px;
       transition:transform 0.12s, border-color 0.12s;
-      box-shadow:0 4px 24px rgba(0,0,0,0.07);">
+      box-shadow:${sel ? '0 4px 24px rgba(0,0,0,0.13)' : '0 4px 24px rgba(0,0,0,0.07)'};">
       <div style="width:52px;height:52px;border-radius:50%;
-        background:${sel ? '#111' : '#eeeeee'};
+        background:${sel ? 'var(--accent)' : '#eeeeee'};
         color:${sel ? '#fff' : '#555'};
         display:flex;align-items:center;justify-content:center;
         font-size:17px;font-weight:800;margin:0 auto 12px;
@@ -557,11 +558,11 @@ function renderSetup() {
       </div>
       <button onclick="confirmSlot()" ${s === null ? 'disabled' : ''} style="
         padding:13px 40px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
-        background:#111;color:#fff;border:none;border-radius:12px;
+        background:var(--accent);color:#fff;border:none;border-radius:12px;
         cursor:${s === null ? 'default' : 'pointer'};
         opacity:${s === null ? 0.35 : 1};
         transition:opacity 0.15s,transform 0.1s;
-        box-shadow:0 4px 16px rgba(0,0,0,0.15);">
+        box-shadow:0 4px 20px rgba(0,0,0,0.18);">
         Continue →
       </button>
       <div style="font-size:11px;color:#bbb;margin-top:18px;max-width:260px;line-height:1.7;">
@@ -594,9 +595,9 @@ function renderNameEntry() {
         transition:border-color 0.15s;" />
       <button onclick="saveName()" style="
         padding:13px 40px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
-        background:#111;color:#fff;border:none;border-radius:12px;
+        background:var(--accent);color:#fff;border:none;border-radius:12px;
         cursor:pointer;transition:opacity 0.15s;
-        box-shadow:0 4px 16px rgba(0,0,0,0.15);">
+        box-shadow:0 4px 20px rgba(0,0,0,0.18);">
         Start reading →
       </button>
       <div id="savingLabel" style="font-size:11px;color:#bbb;margin-top:10px;min-height:16px;"></div>
