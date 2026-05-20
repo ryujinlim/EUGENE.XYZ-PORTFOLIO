@@ -9,17 +9,17 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
   <style>
     :root {
-      --blue: #7c6af6;
-      --blue-bg: #f0eeff;
-      --rose: #e8943a;
-      --rose-bg: #fef3e8;
-      --bg: #fdf9f4;
+      --blue: #111111;
+      --blue-bg: #efefef;
+      --rose: #666666;
+      --rose-bg: #f0f0f0;
+      --bg: #fafafa;
       --card: #ffffff;
-      --border: rgba(0,0,0,0.07);
-      --text: #1c1917;
-      --muted: #78716c;
-      --hint: #a8a29e;
-      --shadow: 0 2px 20px rgba(0,0,0,0.055);
+      --border: rgba(0,0,0,0.09);
+      --text: #111111;
+      --muted: #555555;
+      --hint: #999999;
+      --shadow: 0 2px 20px rgba(0,0,0,0.06);
       --radius: 18px;
       --radius-sm: 10px;
     }
@@ -235,7 +235,7 @@ const BOOKS = [
   {name:"Revelation",     ch:22, phase:5}
 ];
 
-const PHASE_COLORS = {1:"#5b8dee",2:"#4dba87",3:"#e09c3a",4:"#9b6bc5",5:"#e0607e"};
+const PHASE_COLORS = {1:"#111",2:"#444",3:"#666",4:"#888",5:"#aaa"};
 const PHASE_LABELS = {1:"Gospels",2:"Acts",3:"Epistles",4:"Gen. Epistles",5:"Revelation"};
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const WDAYS  = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -247,7 +247,6 @@ function buildSchedule() {
   for (let i = 0; i < flat.length; i += 4) chunks.push(flat.slice(i, i+4));
   let cur = new Date(2026, 5, 1);
   return chunks.map((items, id) => {
-    while (cur.getDay()===0 || cur.getDay()===6) cur = new Date(cur.getTime()+864e5);
     const groups = []; let g = null;
     for (const x of items) {
       if (g && g.book===x.book) g.end = x.ch;
@@ -420,18 +419,8 @@ function renderConfigNotice() {
       <div class="header-title">NT Reading Plan</div>
     </div>
     <div class="config-notice">
-      <strong>Setup required</strong><br><br>
-      Firebase environment variables are not configured. Add these to your Vercel project
-      under <strong>Settings → Environment Variables</strong>:<br><br>
-      <code>FIREBASE_API_KEY</code><br>
-      <code>FIREBASE_AUTH_DOMAIN</code><br>
-      <code>FIREBASE_DATABASE_URL</code><br>
-      <code>FIREBASE_PROJECT_ID</code><br>
-      <code>FIREBASE_STORAGE_BUCKET</code><br>
-      <code>FIREBASE_MESSAGING_SENDER_ID</code><br>
-      <code>FIREBASE_APP_ID</code><br><br>
-      Then redeploy. Values come from your Firebase project's console under
-      <strong>Project Settings → Your Apps</strong>.
+      <strong>Firebase not configured.</strong>
+      Add environment variables to your Vercel project and redeploy.
     </div>
   `;
 }
@@ -444,7 +433,7 @@ function renderSetup() {
     <div class="header">
       <div class="header-eyebrow">Summer 2026</div>
       <div class="header-title">NT Reading Plan</div>
-      <div class="header-sub">4 chapters/day · Mon–Fri · Jun 1 – Aug 28</div>
+      <div class="header-sub">4 chapters/day · every day · Jun 1 – Aug 4</div>
     </div>
     <div class="setup-wrap">
       <div class="setup-title">Who are you? 👋</div>
@@ -508,7 +497,7 @@ function renderMain() {
       <div>
         <div class="header-eyebrow">Summer 2026</div>
         <div class="header-title">NT Reading Plan</div>
-        <div class="header-sub">4 chapters/day · Mon–Fri · canonical order</div>
+        <div class="header-sub">4 chapters/day · every day · Jun 1 – Aug 4</div>
       </div>
       <button onclick="switchSlot()"
         style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;
