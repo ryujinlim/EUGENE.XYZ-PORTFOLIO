@@ -323,6 +323,7 @@ async function writeShared() {
 
 async function init() {
   loadLocal();
+  render(); // show UI immediately from local state; Firebase will update it
 
   // Fetch Firebase config from the secure API endpoint
   let cfg = null;
