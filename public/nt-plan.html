@@ -189,6 +189,40 @@
     .config-notice ol { margin: 10px 0 0 16px; }
     .config-notice li { margin-bottom: 6px; }
 
+    /* ── Notes ── */
+    .note-toggle {
+      background: none; border: none; cursor: pointer;
+      color: var(--hint); font-size: 13px; padding: 2px 4px;
+      line-height: 1; flex-shrink: 0;
+      transition: color 0.15s;
+    }
+    .note-toggle:hover { color: var(--text); }
+    .note-toggle.has-note { color: var(--muted); }
+    .note-panel {
+      padding: 12px 18px 14px;
+      border-top: 1px solid #f0f0f0;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .note-entry { display: flex; flex-direction: column; gap: 4px; }
+    .note-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--hint);
+    }
+    .note-textarea {
+      font-family: 'Nunito', sans-serif; font-size: 12px;
+      color: var(--text); background: #f7f7f7;
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 10px; resize: vertical; min-height: 60px;
+      outline: none; transition: border-color 0.15s; line-height: 1.5;
+    }
+    .note-textarea:focus { border-color: var(--muted); }
+    .note-text {
+      font-size: 12px; color: var(--muted); line-height: 1.5;
+      padding: 6px 10px; background: #f7f7f7;
+      border-radius: 8px; white-space: pre-wrap;
+    }
+    .note-empty { font-size: 12px; color: var(--hint); font-style: italic; }
+
     @media (max-width: 480px) {
       .page { padding: 24px 14px 60px; }
       .header-title { font-size: 24px; }
@@ -285,8 +319,9 @@ function getSlotFromURL() {
 
 let mySlot = getSlotFromURL(); // 0, 1, or null (viewer/setup)
 let setupSlot = null;
-let shared = {p1:{name:'',done:{}}, p2:{name:'',done:{}}};
+let shared = {p1:{name:'',done:{},notes:{}}, p2:{name:'',done:{},notes:{}}};
 let expandedWeeks = new Set();
+let openNotes = new Set(); // dayIds whose note panel is open
 let db = null;
 
 function initials(n) {
@@ -351,8 +386,8 @@ async function init() {
       const val = snap.val();
       if (val) {
         shared = {
-          p1: {name: val.p1?.name||'', done: val.p1?.done||{}},
-          p2: {name: val.p2?.name||'', done: val.p2?.done||{}}
+          p1: {name: val.p1?.name||'', done: val.p1?.done||{}, notes: val.p1?.notes||{}},
+          p2: {name: val.p2?.name||'', done: val.p2?.done||{}, notes: val.p2?.notes||{}}
         };
       }
       render();
@@ -399,6 +434,24 @@ function toggleWeek(wi) {
   if (expandedWeeks.has(wi)) expandedWeeks.delete(wi);
   else expandedWeeks.add(wi);
   saveExpandedWeeks(); render();
+}
+
+function toggleNote(dayId) {
+  if (openNotes.has(dayId)) openNotes.delete(dayId);
+  else openNotes.add(dayId);
+  render();
+}
+
+async function saveNote(dayId) {
+  if (mySlot === null) return;
+  const pk = pkey(mySlot);
+  const el = document.getElementById(`note-${pk}-${dayId}`);
+  if (!el) return;
+  const text = el.value.trim();
+  shared[pk].notes = shared[pk].notes || {};
+  if (text) shared[pk].notes[dayId] = text;
+  else delete shared[pk].notes[dayId];
+  await writePath(`nt-plan/${pk}/notes/${dayId}`, text || null);
 }
 
 function switchSlot() {
@@ -567,6 +620,39 @@ function renderMain() {
         const pc = PHASE_COLORS[d.phase];
         const av1bg = done1 ? 'var(--blue)' : 'var(--blue-bg)', av1fg = done1 ? '#fff' : 'var(--blue)';
         const av2bg = done2 ? 'var(--rose)' : 'var(--rose-bg)', av2fg = done2 ? '#fff' : 'var(--rose)';
+        const note1 = (p1.notes||{})[d.id] || '';
+        const note2 = (p2.notes||{})[d.id] || '';
+        const hasNote = note1 || note2;
+        const noteOpen = openNotes.has(d.id);
+
+        // note panel html
+        let notePanelHtml = '';
+        if (noteOpen) {
+          const myNote  = mySlot===0 ? note1 : mySlot===1 ? note2 : '';
+          const theirNote = mySlot===0 ? note2 : mySlot===1 ? note1 : '';
+          const theirName = mySlot===0 ? (p2.name||'Person 2') : (p1.name||'Person 1');
+          const myPk = mySlot !== null ? pkey(mySlot) : '';
+          notePanelHtml = `<div class="note-panel">`;
+          if (mySlot !== null) {
+            notePanelHtml += `
+              <div class="note-entry">
+                <div class="note-label">Your note</div>
+                <textarea class="note-textarea" id="note-${myPk}-${d.id}"
+                  placeholder="Write your thoughts…"
+                  onblur="saveNote(${d.id})"
+                >${myNote}</textarea>
+              </div>`;
+          }
+          notePanelHtml += `
+              <div class="note-entry">
+                <div class="note-label">${theirName}</div>
+                ${theirNote
+                  ? `<div class="note-text">${theirNote.replace(/</g,'&lt;')}</div>`
+                  : `<div class="note-empty">Nothing yet</div>`}
+              </div>
+            </div>`;
+        }
+
         html += `
           <div class="day-row${bothDone?' both-done':''}">
             <div class="day-date">
@@ -576,6 +662,10 @@ function renderMain() {
             <div class="phase-pip" style="background:${pc};"></div>
             <div class="day-reading${bothDone?' faded':''}">${d.reading}</div>
             <div class="day-checks">
+              <button class="note-toggle${hasNote?' has-note':''}"
+                onclick="toggleNote(${d.id})" title="Notes">
+                ${noteOpen ? '✕' : '✎'}
+              </button>
               <div class="check-avatar ${mySlot===0?'mine':'not-mine'}"
                 style="background:${av1bg};color:${av1fg};"
                 ${mySlot===0?`onclick="toggleDay(${d.id})"`:''}
@@ -590,6 +680,7 @@ function renderMain() {
               </div>
             </div>
           </div>
+          ${notePanelHtml}
         `;
       }
       html += `</div>`;
@@ -606,6 +697,8 @@ window.saveName    = saveName;
 window.toggleDay   = toggleDay;
 window.toggleWeek  = toggleWeek;
 window.switchSlot  = switchSlot;
+window.toggleNote  = toggleNote;
+window.saveNote    = saveNote;
 
 init();
 </script>
