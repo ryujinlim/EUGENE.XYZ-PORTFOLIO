@@ -281,57 +281,109 @@
 </div>
 
 <script>
-const BOOKS = [
-  {name:"Matthew",        ch:28, phase:1},
-  {name:"Mark",           ch:16, phase:1},
-  {name:"Luke",           ch:24, phase:1},
-  {name:"John",           ch:21, phase:1},
-  {name:"Acts",           ch:28, phase:2},
-  {name:"Romans",         ch:16, phase:3},
-  {name:"1 Corinthians",  ch:16, phase:3},
-  {name:"2 Corinthians",  ch:13, phase:3},
-  {name:"Galatians",      ch:6,  phase:3},
-  {name:"Ephesians",      ch:6,  phase:3},
-  {name:"Philippians",    ch:4,  phase:3},
-  {name:"Colossians",     ch:4,  phase:3},
-  {name:"1 Thessalonians",ch:5,  phase:3},
-  {name:"2 Thessalonians",ch:3,  phase:3},
-  {name:"1 Timothy",      ch:6,  phase:3},
-  {name:"2 Timothy",      ch:4,  phase:3},
-  {name:"Titus",          ch:3,  phase:3},
-  {name:"Philemon",       ch:1,  phase:3},
-  {name:"Hebrews",        ch:13, phase:3},
-  {name:"James",          ch:5,  phase:4},
-  {name:"1 Peter",        ch:5,  phase:4},
-  {name:"2 Peter",        ch:3,  phase:4},
-  {name:"1 John",         ch:5,  phase:4},
-  {name:"2 John",         ch:1,  phase:4},
-  {name:"3 John",         ch:1,  phase:4},
-  {name:"Jude",           ch:1,  phase:4},
-  {name:"Revelation",     ch:22, phase:5}
-];
-
 const PHASE_COLORS = {1:"#111",2:"#444",3:"#666",4:"#888",5:"#aaa"};
 const PHASE_LABELS = {1:"Gospels",2:"Acts",3:"Epistles",4:"Gen. Epistles",5:"Revelation"};
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const WDAYS  = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 function buildSchedule() {
-  const flat = [];
-  for (const b of BOOKS) for (let c = 1; c <= b.ch; c++) flat.push({book:b.name, ch:c, phase:b.phase});
-  const chunks = [];
-  for (let i = 0; i < flat.length; i += 4) chunks.push(flat.slice(i, i+4));
+  // Each entry is one day. Book boundaries are never crossed mid-day.
+  // Short books are grouped together. Variable chapter counts follow natural narrative units.
+  const PLAN = [
+    // Matthew — 7 days (Passion + Resurrection in one sitting)
+    {r:'Matthew 1–4',   p:1, b:['Matthew']},
+    {r:'Matthew 5–8',   p:1, b:['Matthew']},
+    {r:'Matthew 9–12',  p:1, b:['Matthew']},
+    {r:'Matthew 13–16', p:1, b:['Matthew']},
+    {r:'Matthew 17–20', p:1, b:['Matthew']},
+    {r:'Matthew 21–25', p:1, b:['Matthew']},  // Olivet Discourse complete
+    {r:'Matthew 26–28', p:1, b:['Matthew']},  // Passion + Resurrection
+    // Mark — 4 days
+    {r:'Mark 1–4',   p:1, b:['Mark']},
+    {r:'Mark 5–8',   p:1, b:['Mark']},
+    {r:'Mark 9–12',  p:1, b:['Mark']},
+    {r:'Mark 13–16', p:1, b:['Mark']},        // Passion + Resurrection
+    // Luke — 6 days
+    {r:'Luke 1–4',   p:1, b:['Luke']},
+    {r:'Luke 5–8',   p:1, b:['Luke']},
+    {r:'Luke 9–12',  p:1, b:['Luke']},
+    {r:'Luke 13–16', p:1, b:['Luke']},
+    {r:'Luke 17–20', p:1, b:['Luke']},
+    {r:'Luke 21–24', p:1, b:['Luke']},        // Passion + Resurrection
+    // John — 5 days (Upper Room Discourse kept together)
+    {r:'John 1–4',   p:1, b:['John']},
+    {r:'John 5–8',   p:1, b:['John']},
+    {r:'John 9–12',  p:1, b:['John']},
+    {r:'John 13–17', p:1, b:['John']},        // Upper Room + High Priestly Prayer
+    {r:'John 18–21', p:1, b:['John']},        // Passion + Resurrection
+    // Acts — 7 days
+    {r:'Acts 1–4',   p:2, b:['Acts']},
+    {r:'Acts 5–8',   p:2, b:['Acts']},
+    {r:'Acts 9–12',  p:2, b:['Acts']},
+    {r:'Acts 13–16', p:2, b:['Acts']},
+    {r:'Acts 17–20', p:2, b:['Acts']},
+    {r:'Acts 21–24', p:2, b:['Acts']},
+    {r:'Acts 25–28', p:2, b:['Acts']},
+    // Romans — 4 days
+    {r:'Romans 1–4',   p:3, b:['Romans']},
+    {r:'Romans 5–8',   p:3, b:['Romans']},
+    {r:'Romans 9–12',  p:3, b:['Romans']},
+    {r:'Romans 13–16', p:3, b:['Romans']},
+    // 1 Corinthians — 4 days
+    {r:'1 Corinthians 1–4',  p:3, b:['1 Corinthians']},
+    {r:'1 Corinthians 5–8',  p:3, b:['1 Corinthians']},
+    {r:'1 Corinthians 9–12', p:3, b:['1 Corinthians']},
+    {r:'1 Corinthians 13–16',p:3, b:['1 Corinthians']},
+    // 2 Corinthians — 3 days
+    {r:'2 Corinthians 1–4',  p:3, b:['2 Corinthians']},
+    {r:'2 Corinthians 5–9',  p:3, b:['2 Corinthians']},
+    {r:'2 Corinthians 10–13',p:3, b:['2 Corinthians']},
+    // Galatians — 2 days (doctrine / application)
+    {r:'Galatians 1–3', p:3, b:['Galatians']},
+    {r:'Galatians 4–6', p:3, b:['Galatians']},
+    // Ephesians — 2 days (doctrine / application)
+    {r:'Ephesians 1–3', p:3, b:['Ephesians']},
+    {r:'Ephesians 4–6', p:3, b:['Ephesians']},
+    // Philippians — 1 day
+    {r:'Philippians 1–4',    p:3, b:['Philippians']},
+    // Colossians — 1 day
+    {r:'Colossians 1–4',     p:3, b:['Colossians']},
+    // 1 Thessalonians — 1 day
+    {r:'1 Thessalonians 1–5',p:3, b:['1 Thessalonians']},
+    // 2 Thessalonians — 1 day
+    {r:'2 Thessalonians 1–3',p:3, b:['2 Thessalonians']},
+    // 1 Timothy — 2 days
+    {r:'1 Timothy 1–3', p:3, b:['1 Timothy']},
+    {r:'1 Timothy 4–6', p:3, b:['1 Timothy']},
+    // 2 Timothy — 1 day
+    {r:'2 Timothy 1–4',      p:3, b:['2 Timothy']},
+    // Titus + Philemon — 1 day (both short pastoral letters)
+    {r:'Titus 1–3  ·  Philemon', p:3, b:['Titus','Philemon']},
+    // Hebrews — 3 days
+    {r:'Hebrews 1–4',  p:3, b:['Hebrews']},
+    {r:'Hebrews 5–9',  p:3, b:['Hebrews']},
+    {r:'Hebrews 10–13',p:3, b:['Hebrews']},
+    // James — 1 day
+    {r:'James 1–5',   p:4, b:['James']},
+    // 1 Peter — 1 day
+    {r:'1 Peter 1–5', p:4, b:['1 Peter']},
+    // 2 Peter — 1 day
+    {r:'2 Peter 1–3', p:4, b:['2 Peter']},
+    // 1 John — 1 day
+    {r:'1 John 1–5',  p:4, b:['1 John']},
+    // 2 John · 3 John · Jude — 1 day (three short letters)
+    {r:'2 John  ·  3 John  ·  Jude', p:4, b:['2 John','3 John','Jude']},
+    // Revelation — 5 days (natural vision breaks)
+    {r:'Revelation 1–3',   p:5, b:['Revelation']},  // 7 churches
+    {r:'Revelation 4–7',   p:5, b:['Revelation']},  // throne + seals
+    {r:'Revelation 8–11',  p:5, b:['Revelation']},  // trumpets
+    {r:'Revelation 12–16', p:5, b:['Revelation']},  // dragon + bowls
+    {r:'Revelation 17–22', p:5, b:['Revelation']},  // Babylon falls + new creation
+  ];
   let cur = new Date(2026, 5, 1);
-  return chunks.map((items, id) => {
-    const groups = []; let g = null;
-    for (const x of items) {
-      if (g && g.book===x.book) g.end = x.ch;
-      else { if (g) groups.push(g); g = {book:x.book, start:x.ch, end:x.ch}; }
-    }
-    if (g) groups.push(g);
-    const reading = groups.map(gr => gr.start===gr.end ? `${gr.book} ${gr.start}` : `${gr.book} ${gr.start}–${gr.end}`).join(', ');
-    const entry = {id, date:new Date(cur), reading, phase:items[0].phase};
-    cur = new Date(cur.getTime()+864e5);
+  return PLAN.map((item, id) => {
+    const entry = {id, date:new Date(cur), reading:item.r, phase:item.p, books:item.b};
+    cur = new Date(cur.getTime() + 864e5);
     return entry;
   });
 }
@@ -502,16 +554,9 @@ function applyTimeTheme() {
   renderAmbientStrip();
 }
 
-// Precompute the last day ID that contains chapters from each book
-const BOOK_LAST_DAY = (() => {
-  const flat = [];
-  for (const b of BOOKS) for (let c = 1; c <= b.ch; c++) flat.push(b.name);
-  const last = {};
-  for (let i = 0, id = 0; i < flat.length; i += 4, id++) {
-    for (const book of new Set(flat.slice(i, i + 4))) last[book] = id;
-  }
-  return last;
-})();
+// Last day ID per book — used to trigger the book completion banner
+const BOOK_LAST_DAY = {};
+for (const d of SCHED) for (const b of d.books) BOOK_LAST_DAY[b] = d.id;
 
 function showBookBanner(book) {
   const el = document.createElement('div');
@@ -710,7 +755,7 @@ function renderSetup() {
           color:#aaa;margin-bottom:10px;">Summer 2026</div>
         <div style="font-family:'Lora',serif;font-size:34px;font-weight:500;
           color:#111;line-height:1.2;margin-bottom:8px;">NT Reading Plan</div>
-        <div style="font-size:13px;color:#888;">4 chapters · every day · Jun 1 → Aug 4</div>
+        <div style="font-size:13px;color:#888;">260 chapters · 65 days · Jun 1 → Aug 4</div>
       </div>
       <div style="display:flex;flex-direction:row;gap:14px;width:100%;max-width:360px;margin-bottom:28px;">
         ${card(0, p1n, s === 0)}
@@ -787,7 +832,7 @@ function renderMain() {
       <div>
         <div class="header-eyebrow">Summer 2026</div>
         <div class="header-title">NT Reading Plan</div>
-        <div class="header-sub">4 chapters/day · every day · Jun 1 – Aug 4</div>
+        <div class="header-sub">260 chapters · 65 days · Jun 1 – Aug 4</div>
       </div>
       <button onclick="switchSlot()"
         style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;
