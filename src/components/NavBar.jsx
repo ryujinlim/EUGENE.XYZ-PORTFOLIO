@@ -9,7 +9,6 @@ const NAV_LINKS = [
   { label: 'Projects',   href: '#projects' },
   { label: 'Music',      href: '#music' },
   { label: 'Contact',    href: '#contact' },
-  { label: 'NT Plan',    href: '/nt-plan' },
 ]
 
 const SYMBOL_TO_KEY = { '^VIX': 'vix', 'SPY': 'spy', '^TNX': 'tny' }

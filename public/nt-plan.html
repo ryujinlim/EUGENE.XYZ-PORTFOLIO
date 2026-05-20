@@ -9,10 +9,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
   <style>
     :root {
-      --blue: #5b8dee;
-      --blue-bg: #eef3fd;
-      --rose: #e0607e;
-      --rose-bg: #fdeef2;
+      --blue: #7c6af6;
+      --blue-bg: #f0eeff;
+      --rose: #e8943a;
+      --rose-bg: #fef3e8;
       --bg: #fdf9f4;
       --card: #ffffff;
       --border: rgba(0,0,0,0.07);
@@ -275,7 +275,16 @@ function groupByWeek(sched) {
 const SCHED = buildSchedule();
 const WEEKS = groupByWeek(SCHED);
 
-let mySlot = null;
+// Slot comes purely from URL: ?person=1 or ?person=2
+// Progress lives entirely in Firebase — nothing important is in localStorage
+function getSlotFromURL() {
+  const p = new URLSearchParams(window.location.search).get('person');
+  if (p === '1') return 0;
+  if (p === '2') return 1;
+  return null;
+}
+
+let mySlot = getSlotFromURL(); // 0, 1, or null (viewer/setup)
 let setupSlot = null;
 let shared = {p1:{name:'',done:{}}, p2:{name:'',done:{}}};
 let expandedWeeks = new Set();
@@ -299,20 +308,16 @@ function findCurrentWeekIdx() {
   return WEEKS.length-1;
 }
 
-function loadLocal() {
-  const savedSlot = localStorage.getItem('nt-slot-2026');
-  if (savedSlot !== null) mySlot = parseInt(savedSlot, 10);
-  const savedExp = localStorage.getItem('nt-weeks-2026');
-  if (savedExp) {
-    try { expandedWeeks = new Set(JSON.parse(savedExp)); } catch { expandedWeeks = new Set(); }
-  } else {
-    expandedWeeks.add(findCurrentWeekIdx());
-  }
+function saveExpandedWeeks() {
+  localStorage.setItem('nt-weeks-2026', JSON.stringify([...expandedWeeks]));
 }
 
-function saveLocal() {
-  if (mySlot !== null) localStorage.setItem('nt-slot-2026', String(mySlot));
-  localStorage.setItem('nt-weeks-2026', JSON.stringify([...expandedWeeks]));
+function loadExpandedWeeks() {
+  const saved = localStorage.getItem('nt-weeks-2026');
+  if (saved) {
+    try { expandedWeeks = new Set(JSON.parse(saved)); return; } catch {}
+  }
+  expandedWeeks.add(findCurrentWeekIdx());
 }
 
 async function writeShared() {
@@ -322,10 +327,9 @@ async function writeShared() {
 }
 
 async function init() {
-  loadLocal();
-  render(); // show UI immediately from local state; Firebase will update it
+  loadExpandedWeeks();
+  render(); // show UI immediately; Firebase will update it
 
-  // Fetch Firebase config from the secure API endpoint
   let cfg = null;
   try {
     const res = await fetch('/api/firebase-config');
@@ -361,8 +365,9 @@ async function init() {
 function selectSlot(s) { setupSlot = s; render(); }
 
 function confirmSlot() {
-  if (setupSlot===null) return;
-  mySlot = setupSlot; saveLocal(); render();
+  if (setupSlot === null) return;
+  // Navigate to the URL with ?person=1 or ?person=2 — bookmark this!
+  window.location.href = `?person=${setupSlot + 1}`;
 }
 
 async function saveName() {
@@ -392,13 +397,12 @@ async function toggleDay(id) {
 function toggleWeek(wi) {
   if (expandedWeeks.has(wi)) expandedWeeks.delete(wi);
   else expandedWeeks.add(wi);
-  saveLocal(); render();
+  saveExpandedWeeks(); render();
 }
 
 function switchSlot() {
-  mySlot = null; setupSlot = null;
-  localStorage.removeItem('nt-slot-2026');
-  render();
+  // Drop back to base URL without ?person param
+  window.location.href = window.location.pathname;
 }
 
 function render() {
@@ -447,24 +451,24 @@ function renderSetup() {
         <div class="slot-card ${s===0?'selected-blue':''}" onclick="selectSlot(0)">
           <div class="slot-av-lg" style="background:var(--blue-bg);color:var(--blue);">${p1n?initials(p1n):'1'}</div>
           <div class="slot-name">${p1n||'Person 1'}</div>
-          <div class="slot-status">${p1n?'✦ taken':'open'}</div>
+          <div class="slot-status">${p1n?'✦ claimed':'open'}</div>
         </div>
         <div class="slot-card ${s===1?'selected-rose':''}" onclick="selectSlot(1)">
           <div class="slot-av-lg" style="background:var(--rose-bg);color:var(--rose);">${p2n?initials(p2n):'2'}</div>
           <div class="slot-name">${p2n||'Person 2'}</div>
-          <div class="slot-status">${p2n?'✦ taken':'open'}</div>
+          <div class="slot-status">${p2n?'✦ claimed':'open'}</div>
         </div>
       </div>
       <button class="cta-btn" style="background:${s===1?'var(--rose)':'var(--blue)'};"
         onclick="confirmSlot()" ${s===null?'disabled':''}>Continue →</button>
-      <div class="setup-hint">Progress syncs live across both devices via Firebase ✦</div>
+      <div class="setup-hint">You'll get a URL to bookmark — your progress lives in Firebase, not this device ✦</div>
     </div>
   `;
 }
 
 function renderNameEntry() {
-  const isRose = mySlot===1;
-  const color = isRose ? 'var(--rose)' : 'var(--blue)';
+  const isAmber = mySlot===1;
+  const color = isAmber ? 'var(--rose)' : 'var(--blue)';
   const other = mySlot===0 ? (shared.p2?.name||'') : (shared.p1?.name||'');
   document.getElementById('app').innerHTML = `
     <div class="header">
@@ -508,7 +512,7 @@ function renderMain() {
         style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;
                background:none;border:1px solid var(--border);border-radius:8px;
                padding:5px 10px;cursor:pointer;color:var(--muted);margin-top:4px;white-space:nowrap;">
-        switch slot
+        switch person
       </button>
     </div>
     <div class="progress-grid">
@@ -570,8 +574,8 @@ function renderMain() {
         const done2 = !!(p2.done||{})[d.id];
         const bothDone = done1 && done2;
         const pc = PHASE_COLORS[d.phase];
-        const av1bg = done1?'var(--blue)':'var(--blue-bg)', av1fg = done1?'#fff':'var(--blue)';
-        const av2bg = done2?'var(--rose)':'var(--rose-bg)', av2fg = done2?'#fff':'var(--rose)';
+        const av1bg = done1 ? 'var(--blue)' : 'var(--blue-bg)', av1fg = done1 ? '#fff' : 'var(--blue)';
+        const av2bg = done2 ? 'var(--rose)' : 'var(--rose-bg)', av2fg = done2 ? '#fff' : 'var(--rose)';
         html += `
           <div class="day-row${bothDone?' both-done':''}">
             <div class="day-date">
