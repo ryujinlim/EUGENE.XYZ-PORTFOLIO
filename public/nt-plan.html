@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NT Reading Plan · Summer 2026</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;1,400&display=swap" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --blue: #5b8dee;
+      --blue-bg: #eef3fd;
+      --rose: #e0607e;
+      --rose-bg: #fdeef2;
+      --bg: #fdf9f4;
+      --card: #ffffff;
+      --border: rgba(0,0,0,0.07);
+      --text: #1c1917;
+      --muted: #78716c;
+      --hint: #a8a29e;
+      --shadow: 0 2px 20px rgba(0,0,0,0.055);
+      --radius: 18px;
+      --radius-sm: 10px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .page {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+    .header { margin-bottom: 32px; }
+    .header-eyebrow {
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--hint); margin-bottom: 6px;
+    }
+    .header-title {
+      font-family: 'Lora', serif;
+      font-size: 28px; font-weight: 500;
+      color: var(--text); line-height: 1.2;
+    }
+    .header-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    .progress-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 12px; margin-bottom: 28px;
+    }
+    .progress-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px; box-shadow: var(--shadow);
+    }
+    .progress-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .avatar-lg {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+    .name-label { font-size: 13px; font-weight: 700; line-height: 1.2; }
+    .count-label { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .pbar-track { height: 6px; border-radius: 99px; background: #f0ece7; overflow: hidden; }
+    .pbar-fill { height: 100%; border-radius: 99px; transition: width 0.4s cubic-bezier(.4,0,.2,1); }
+    .you-tag {
+      font-size: 10px; font-weight: 700;
+      padding: 2px 7px; border-radius: 99px;
+      margin-left: 4px; vertical-align: middle;
+    }
+
+    .week { margin-bottom: 8px; }
+    .week-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+    }
+    .week-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; cursor: pointer; user-select: none;
+      transition: background 0.1s;
+    }
+    .week-header:hover { background: #faf8f5; }
+    .week-header-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .week-num { font-size: 14px; font-weight: 700; }
+    .week-dates { font-size: 12px; color: var(--muted); }
+    .week-header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .mini-progress { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; }
+    .chevron { font-size: 14px; color: var(--hint); transition: transform 0.2s; display: inline-block; }
+    .chevron.open { transform: rotate(180deg); }
+    .week-body { border-top: 1px solid var(--border); }
+
+    .day-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 18px; border-bottom: 1px solid #f5f0eb;
+      transition: background 0.1s;
+    }
+    .day-row:last-child { border-bottom: none; }
+    .day-row.both-done { background: #fdfbf8; }
+    .day-date { flex-shrink: 0; width: 78px; }
+    .day-weekday { font-size: 11px; color: var(--hint); font-weight: 600; }
+    .day-datenum { font-size: 12px; color: var(--muted); font-weight: 600; margin-top: 1px; }
+    .phase-pip { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .day-reading { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; }
+    .day-reading.faded { color: var(--hint); text-decoration: line-through; }
+    .day-checks { display: flex; gap: 7px; flex-shrink: 0; }
+    .check-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+      border: 2px solid transparent; user-select: none;
+    }
+    .check-avatar.mine:hover { transform: scale(1.1); }
+    .check-avatar.not-mine { cursor: default; opacity: 0.65; }
+    .check-avatar .checkmark { font-size: 13px; line-height: 1; }
+
+    .setup-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 20px 0 40px; text-align: center;
+    }
+    .setup-title {
+      font-family: 'Lora', serif;
+      font-size: 24px; font-weight: 500; margin-bottom: 6px;
+    }
+    .setup-sub { font-size: 13px; color: var(--muted); margin-bottom: 32px; line-height: 1.6; }
+    .slot-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 12px; width: 100%; max-width: 380px; margin-bottom: 20px;
+    }
+    .slot-card {
+      background: var(--card); border: 2px solid var(--border);
+      border-radius: var(--radius); padding: 20px 16px;
+      cursor: pointer; transition: border-color 0.15s, transform 0.1s; text-align: center;
+    }
+    .slot-card:hover { transform: translateY(-1px); }
+    .slot-card.selected-blue { border-color: var(--blue); }
+    .slot-card.selected-rose { border-color: var(--rose); }
+    .slot-av-lg {
+      width: 48px; height: 48px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800; margin: 0 auto 10px;
+    }
+    .slot-name { font-size: 14px; font-weight: 700; }
+    .slot-status { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .name-input {
+      width: 100%; max-width: 280px;
+      padding: 12px 16px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 15px; font-weight: 600;
+      border: 2px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--card); color: var(--text);
+      outline: none; margin-bottom: 14px;
+      transition: border-color 0.15s; text-align: center;
+    }
+    .cta-btn {
+      padding: 12px 32px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px; font-weight: 700;
+      border: none; border-radius: var(--radius-sm);
+      cursor: pointer; color: #fff;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .cta-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .cta-btn:active { transform: scale(0.98); }
+    .cta-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+    .setup-hint { font-size: 12px; color: var(--hint); margin-top: 16px; max-width: 300px; line-height: 1.6; }
+    .saving-label { font-size: 11px; color: var(--hint); margin-top: 8px; min-height: 16px; }
+
+    .phase-chip {
+      font-size: 10px; font-weight: 700;
+      padding: 2px 8px; border-radius: 99px;
+      background: #f0ece7; color: var(--muted); letter-spacing: 0.02em;
+    }
+    .config-notice {
+      background: #fff8ed; border: 1px solid #f5d89e;
+      border-radius: var(--radius-sm); padding: 20px 24px;
+      font-size: 13px; color: #7c5c1e; line-height: 1.7;
+    }
+    .config-notice strong { font-weight: 700; }
+    .config-notice code {
+      font-family: monospace; background: rgba(0,0,0,0.07);
+      padding: 1px 5px; border-radius: 4px; font-size: 12px;
+    }
+    .config-notice ol { margin: 10px 0 0 16px; }
+    .config-notice li { margin-bottom: 6px; }
+
+    @media (max-width: 480px) {
+      .page { padding: 24px 14px 60px; }
+      .header-title { font-size: 24px; }
+      .day-date { width: 60px; }
+      .day-reading { font-size: 12px; }
+      .week-header { padding: 12px 14px; }
+      .day-row { padding: 10px 14px; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page" id="app">
+  <div style="padding:60px 0;text-align:center;color:#a8a29e;font-family:'Nunito',sans-serif;font-size:14px;">Loading…</div>
+</div>
+
+<script>
+const BOOKS = [
+  {name:"Matthew",        ch:28, phase:1},
+  {name:"Mark",           ch:16, phase:1},
+  {name:"Luke",           ch:24, phase:1},
+  {name:"John",           ch:21, phase:1},
+  {name:"Acts",           ch:28, phase:2},
+  {name:"Romans",         ch:16, phase:3},
+  {name:"1 Corinthians",  ch:16, phase:3},
+  {name:"2 Corinthians",  ch:13, phase:3},
+  {name:"Galatians",      ch:6,  phase:3},
+  {name:"Ephesians",      ch:6,  phase:3},
+  {name:"Philippians",    ch:4,  phase:3},
+  {name:"Colossians",     ch:4,  phase:3},
+  {name:"1 Thessalonians",ch:5,  phase:3},
+  {name:"2 Thessalonians",ch:3,  phase:3},
+  {name:"1 Timothy",      ch:6,  phase:3},
+  {name:"2 Timothy",      ch:4,  phase:3},
+  {name:"Titus",          ch:3,  phase:3},
+  {name:"Philemon",       ch:1,  phase:3},
+  {name:"Hebrews",        ch:13, phase:3},
+  {name:"James",          ch:5,  phase:4},
+  {name:"1 Peter",        ch:5,  phase:4},
+  {name:"2 Peter",        ch:3,  phase:4},
+  {name:"1 John",         ch:5,  phase:4},
+  {name:"2 John",         ch:1,  phase:4},
+  {name:"3 John",         ch:1,  phase:4},
+  {name:"Jude",           ch:1,  phase:4},
+  {name:"Revelation",     ch:22, phase:5}
+];
+
+const PHASE_COLORS = {1:"#5b8dee",2:"#4dba87",3:"#e09c3a",4:"#9b6bc5",5:"#e0607e"};
+const PHASE_LABELS = {1:"Gospels",2:"Acts",3:"Epistles",4:"Gen. Epistles",5:"Revelation"};
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const WDAYS  = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function buildSchedule() {
+  const flat = [];
+  for (const b of BOOKS) for (let c = 1; c <= b.ch; c++) flat.push({book:b.name, ch:c, phase:b.phase});
+  const chunks = [];
+  for (let i = 0; i < flat.length; i += 4) chunks.push(flat.slice(i, i+4));
+  let cur = new Date(2026, 5, 1);
+  return chunks.map((items, id) => {
+    while (cur.getDay()===0 || cur.getDay()===6) cur = new Date(cur.getTime()+864e5);
+    const groups = []; let g = null;
+    for (const x of items) {
+      if (g && g.book===x.book) g.end = x.ch;
+      else { if (g) groups.push(g); g = {book:x.book, start:x.ch, end:x.ch}; }
+    }
+    if (g) groups.push(g);
+    const reading = groups.map(gr => gr.start===gr.end ? `${gr.book} ${gr.start}` : `${gr.book} ${gr.start}–${gr.end}`).join(', ');
+    const entry = {id, date:new Date(cur), reading, phase:items[0].phase};
+    cur = new Date(cur.getTime()+864e5);
+    return entry;
+  });
+}
+
+function groupByWeek(sched) {
+  const weeks = []; let lastW = -1;
+  for (const d of sched) {
+    const diff = Math.floor((d.date - sched[0].date) / 864e5);
+    const w = Math.floor(diff/7);
+    if (w !== lastW) { weeks.push({wk:w+1, days:[]}); lastW = w; }
+    weeks[weeks.length-1].days.push(d);
+  }
+  return weeks;
+}
+
+const SCHED = buildSchedule();
+const WEEKS = groupByWeek(SCHED);
+
+let mySlot = null;
+let setupSlot = null;
+let shared = {p1:{name:'',done:{}}, p2:{name:'',done:{}}};
+let expandedWeeks = new Set();
+let db = null;
+
+function initials(n) {
+  if (!n) return '?';
+  return n.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2);
+}
+function fmtShort(d) { return `${MONTHS[d.getMonth()]} ${d.getDate()}`; }
+function pkey(s) { return s===0 ? 'p1' : 'p2'; }
+function pctOf(done, total) { return total===0 ? 0 : Math.round(Object.keys(done||{}).length/total*100); }
+function findCurrentWeekIdx() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  for (let i=0; i<WEEKS.length; i++) {
+    for (const d of WEEKS[i].days) {
+      const dd = new Date(d.date); dd.setHours(0,0,0,0);
+      if (dd >= today) return i;
+    }
+  }
+  return WEEKS.length-1;
+}
+
+function loadLocal() {
+  const savedSlot = localStorage.getItem('nt-slot-2026');
+  if (savedSlot !== null) mySlot = parseInt(savedSlot, 10);
+  const savedExp = localStorage.getItem('nt-weeks-2026');
+  if (savedExp) {
+    try { expandedWeeks = new Set(JSON.parse(savedExp)); } catch { expandedWeeks = new Set(); }
+  } else {
+    expandedWeeks.add(findCurrentWeekIdx());
+  }
+}
+
+function saveLocal() {
+  if (mySlot !== null) localStorage.setItem('nt-slot-2026', String(mySlot));
+  localStorage.setItem('nt-weeks-2026', JSON.stringify([...expandedWeeks]));
+}
+
+async function writeShared() {
+  if (!db) return;
+  try { await db.ref('nt-plan').set(shared); }
+  catch (e) { console.error('Firebase write error:', e); }
+}
+
+async function init() {
+  loadLocal();
+
+  // Fetch Firebase config from the secure API endpoint
+  let cfg = null;
+  try {
+    const res = await fetch('/api/firebase-config');
+    cfg = await res.json();
+  } catch (e) {
+    console.warn('Could not reach /api/firebase-config:', e);
+  }
+
+  if (!cfg?.apiKey) {
+    renderConfigNotice();
+    return;
+  }
+
+  try {
+    firebase.initializeApp(cfg);
+    db = firebase.database();
+    db.ref('nt-plan').on('value', snap => {
+      const val = snap.val();
+      if (val) {
+        shared = {
+          p1: {name: val.p1?.name||'', done: val.p1?.done||{}},
+          p2: {name: val.p2?.name||'', done: val.p2?.done||{}}
+        };
+      }
+      render();
+    });
+  } catch (e) {
+    console.error('Firebase init error:', e);
+    render();
+  }
+}
+
+function selectSlot(s) { setupSlot = s; render(); }
+
+function confirmSlot() {
+  if (setupSlot===null) return;
+  mySlot = setupSlot; saveLocal(); render();
+}
+
+async function saveName() {
+  const input = document.getElementById('nameInput');
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val) return;
+  const pk = pkey(mySlot);
+  if (!shared[pk]) shared[pk] = {name:'', done:{}};
+  shared[pk].name = val;
+  if (!shared[pk].done) shared[pk].done = {};
+  const lbl = document.getElementById('savingLabel');
+  if (lbl) lbl.textContent = 'Saving…';
+  await writeShared();
+  if (!db) render();
+}
+
+async function toggleDay(id) {
+  const pk = pkey(mySlot);
+  if (!shared[pk].done) shared[pk].done = {};
+  if (shared[pk].done[id]) delete shared[pk].done[id];
+  else shared[pk].done[id] = true;
+  render();
+  await writeShared();
+}
+
+function toggleWeek(wi) {
+  if (expandedWeeks.has(wi)) expandedWeeks.delete(wi);
+  else expandedWeeks.add(wi);
+  saveLocal(); render();
+}
+
+function switchSlot() {
+  mySlot = null; setupSlot = null;
+  localStorage.removeItem('nt-slot-2026');
+  render();
+}
+
+function render() {
+  if (mySlot===null) { renderSetup(); return; }
+  if (!shared[pkey(mySlot)]?.name) { renderNameEntry(); return; }
+  renderMain();
+}
+
+function renderConfigNotice() {
+  document.getElementById('app').innerHTML = `
+    <div class="header">
+      <div class="header-eyebrow">Summer 2026</div>
+      <div class="header-title">NT Reading Plan</div>
+    </div>
+    <div class="config-notice">
+      <strong>Setup required</strong><br><br>
+      Firebase environment variables are not configured. Add these to your Vercel project
+      under <strong>Settings → Environment Variables</strong>:<br><br>
+      <code>FIREBASE_API_KEY</code><br>
+      <code>FIREBASE_AUTH_DOMAIN</code><br>
+      <code>FIREBASE_DATABASE_URL</code><br>
+      <code>FIREBASE_PROJECT_ID</code><br>
+      <code>FIREBASE_STORAGE_BUCKET</code><br>
+      <code>FIREBASE_MESSAGING_SENDER_ID</code><br>
+      <code>FIREBASE_APP_ID</code><br><br>
+      Then redeploy. Values come from your Firebase project's console under
+      <strong>Project Settings → Your Apps</strong>.
+    </div>
+  `;
+}
+
+function renderSetup() {
+  const p1n = shared.p1?.name||'';
+  const p2n = shared.p2?.name||'';
+  const s = setupSlot;
+  document.getElementById('app').innerHTML = `
+    <div class="header">
+      <div class="header-eyebrow">Summer 2026</div>
+      <div class="header-title">NT Reading Plan</div>
+      <div class="header-sub">4 chapters/day · Mon–Fri · Jun 1 – Aug 28</div>
+    </div>
+    <div class="setup-wrap">
+      <div class="setup-title">Who are you? 👋</div>
+      <div class="setup-sub">Pick your spot. Your reading partner opens this on their device and takes the other one.</div>
+      <div class="slot-grid">
+        <div class="slot-card ${s===0?'selected-blue':''}" onclick="selectSlot(0)">
+          <div class="slot-av-lg" style="background:var(--blue-bg);color:var(--blue);">${p1n?initials(p1n):'1'}</div>
+          <div class="slot-name">${p1n||'Person 1'}</div>
+          <div class="slot-status">${p1n?'✦ taken':'open'}</div>
+        </div>
+        <div class="slot-card ${s===1?'selected-rose':''}" onclick="selectSlot(1)">
+          <div class="slot-av-lg" style="background:var(--rose-bg);color:var(--rose);">${p2n?initials(p2n):'2'}</div>
+          <div class="slot-name">${p2n||'Person 2'}</div>
+          <div class="slot-status">${p2n?'✦ taken':'open'}</div>
+        </div>
+      </div>
+      <button class="cta-btn" style="background:${s===1?'var(--rose)':'var(--blue)'};"
+        onclick="confirmSlot()" ${s===null?'disabled':''}>Continue →</button>
+      <div class="setup-hint">Progress syncs live across both devices via Firebase ✦</div>
+    </div>
+  `;
+}
+
+function renderNameEntry() {
+  const isRose = mySlot===1;
+  const color = isRose ? 'var(--rose)' : 'var(--blue)';
+  const other = mySlot===0 ? (shared.p2?.name||'') : (shared.p1?.name||'');
+  document.getElementById('app').innerHTML = `
+    <div class="header">
+      <div class="header-eyebrow">Summer 2026</div>
+      <div class="header-title">NT Reading Plan</div>
+    </div>
+    <div class="setup-wrap">
+      <div class="setup-title">What's your name?</div>
+      <div class="setup-sub">${other?`Reading with <strong>${other}</strong> ✦`:'Your reading partner will join soon.'}</div>
+      <input id="nameInput" class="name-input" type="text" placeholder="Your name" maxlength="20"
+        style="border-color:${color};" autocomplete="off" />
+      <button class="cta-btn" style="background:${color};" onclick="saveName()">Start reading →</button>
+      <div id="savingLabel" class="saving-label"></div>
+      <div class="setup-hint" style="margin-top:12px;">
+        <span onclick="switchSlot()" style="cursor:pointer;text-decoration:underline;">← Switch slot</span>
+      </div>
+    </div>
+  `;
+  const inp = document.getElementById('nameInput');
+  inp.focus();
+  inp.addEventListener('keydown', e => { if (e.key==='Enter') saveName(); });
+}
+
+function renderMain() {
+  const p1 = shared.p1||{name:'',done:{}};
+  const p2 = shared.p2||{name:'',done:{}};
+  const total = SCHED.length;
+  const d1 = Object.keys(p1.done||{}).length;
+  const d2 = Object.keys(p2.done||{}).length;
+  const pct1 = pctOf(p1.done, total);
+  const pct2 = pctOf(p2.done, total);
+
+  let html = `
+    <div class="header" style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div class="header-eyebrow">Summer 2026</div>
+        <div class="header-title">NT Reading Plan</div>
+        <div class="header-sub">4 chapters/day · Mon–Fri · canonical order</div>
+      </div>
+      <button onclick="switchSlot()"
+        style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;
+               background:none;border:1px solid var(--border);border-radius:8px;
+               padding:5px 10px;cursor:pointer;color:var(--muted);margin-top:4px;white-space:nowrap;">
+        switch slot
+      </button>
+    </div>
+    <div class="progress-grid">
+      <div class="progress-card">
+        <div class="progress-card-top">
+          <div class="avatar-lg" style="background:var(--blue-bg);color:var(--blue);">${initials(p1.name)}</div>
+          <div>
+            <div class="name-label">${p1.name||'Person 1'}${mySlot===0?'<span class="you-tag" style="background:var(--blue-bg);color:var(--blue);">you</span>':''}</div>
+            <div class="count-label">${d1} / ${total} days · ${pct1}%</div>
+          </div>
+        </div>
+        <div class="pbar-track"><div class="pbar-fill" style="width:${pct1}%;background:var(--blue);"></div></div>
+      </div>
+      <div class="progress-card">
+        <div class="progress-card-top">
+          <div class="avatar-lg" style="background:var(--rose-bg);color:var(--rose);">${initials(p2.name)}</div>
+          <div>
+            <div class="name-label">${p2.name||'Person 2'}${mySlot===1?'<span class="you-tag" style="background:var(--rose-bg);color:var(--rose);">you</span>':''}</div>
+            <div class="count-label">${d2} / ${total} days · ${pct2}%</div>
+          </div>
+        </div>
+        <div class="pbar-track"><div class="pbar-fill" style="width:${pct2}%;background:var(--rose);"></div></div>
+      </div>
+    </div>
+  `;
+
+  for (let wi=0; wi<WEEKS.length; wi++) {
+    const week = WEEKS[wi];
+    const isExp = expandedWeeks.has(wi);
+    const wt = week.days.length;
+    const w1done = week.days.filter(d=>(p1.done||{})[d.id]).length;
+    const w2done = week.days.filter(d=>(p2.done||{})[d.id]).length;
+    const phasesSeen = [...new Set(week.days.map(d=>d.phase))];
+
+    html += `
+      <div class="week"><div class="week-card">
+        <div class="week-header" onclick="toggleWeek(${wi})">
+          <div class="week-header-left">
+            <span class="week-num">Week ${week.wk}</span>
+            <span class="week-dates">${fmtShort(week.days[0].date)} – ${fmtShort(week.days[wt-1].date)}</span>
+            ${phasesSeen.map(p=>`<span class="phase-chip" style="color:${PHASE_COLORS[p]};background:${PHASE_COLORS[p]}18;">${PHASE_LABELS[p]}</span>`).join('')}
+          </div>
+          <div class="week-header-right">
+            <span class="mini-progress">
+              <span style="color:var(--blue);">${w1done}</span>
+              <span style="color:var(--hint);">/</span>
+              <span style="color:var(--rose);">${w2done}</span>
+              <span style="color:var(--hint);">&thinsp;of ${wt}</span>
+            </span>
+            <span class="chevron ${isExp?'open':''}">▾</span>
+          </div>
+        </div>
+    `;
+
+    if (isExp) {
+      html += `<div class="week-body">`;
+      for (const d of week.days) {
+        const done1 = !!(p1.done||{})[d.id];
+        const done2 = !!(p2.done||{})[d.id];
+        const bothDone = done1 && done2;
+        const pc = PHASE_COLORS[d.phase];
+        const av1bg = done1?'var(--blue)':'var(--blue-bg)', av1fg = done1?'#fff':'var(--blue)';
+        const av2bg = done2?'var(--rose)':'var(--rose-bg)', av2fg = done2?'#fff':'var(--rose)';
+        html += `
+          <div class="day-row${bothDone?' both-done':''}">
+            <div class="day-date">
+              <div class="day-weekday">${WDAYS[d.date.getDay()]}</div>
+              <div class="day-datenum">${fmtShort(d.date)}</div>
+            </div>
+            <div class="phase-pip" style="background:${pc};"></div>
+            <div class="day-reading${bothDone?' faded':''}">${d.reading}</div>
+            <div class="day-checks">
+              <div class="check-avatar ${mySlot===0?'mine':'not-mine'}"
+                style="background:${av1bg};color:${av1fg};"
+                ${mySlot===0?`onclick="toggleDay(${d.id})"`:''}
+                title="${p1.name||'Person 1'}">
+                ${done1?'<span class="checkmark">✓</span>':initials(p1.name||'P1')}
+              </div>
+              <div class="check-avatar ${mySlot===1?'mine':'not-mine'}"
+                style="background:${av2bg};color:${av2fg};"
+                ${mySlot===1?`onclick="toggleDay(${d.id})"`:''}
+                title="${p2.name||'Person 2'}">
+                ${done2?'<span class="checkmark">✓</span>':initials(p2.name||'P2')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      html += `</div>`;
+    }
+    html += `</div></div>`;
+  }
+
+  document.getElementById('app').innerHTML = html;
+}
+
+window.selectSlot  = selectSlot;
+window.confirmSlot = confirmSlot;
+window.saveName    = saveName;
+window.toggleDay   = toggleDay;
+window.toggleWeek  = toggleWeek;
+window.switchSlot  = switchSlot;
+
+init();
+</script>
+</body>
+</html>
