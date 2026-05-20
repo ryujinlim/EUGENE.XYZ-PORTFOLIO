@@ -1,6 +1,7 @@
 {
-  "cleanUrls": true,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/nt-plan", "destination": "/nt-plan.html" },
+    { "source": "/reading", "destination": "/reading.html" },
+    { "source": "/(.*)",    "destination": "/" }
   ]
 }
