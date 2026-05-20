@@ -486,12 +486,8 @@ function renderSetup() {
     <div class="header">
       <div class="header-eyebrow">Summer 2026</div>
       <div class="header-title">NT Reading Plan</div>
-      <div class="header-sub">4 chapters/day · every day · Jun 1 – Aug 4</div>
     </div>
     <div class="setup-wrap">
-      <div class="setup-title">Who are you? 👋</div>
-      <div class="setup-sub">Pick your spot. Your reading partner opens this on their device and takes the other one.</div>
-      <div class="slot-grid">
         <div class="slot-card ${s===0?'selected-blue':''}" onclick="selectSlot(0)">
           <div class="slot-av-lg" style="background:var(--blue-bg);color:var(--blue);">${p1n?initials(p1n):'1'}</div>
           <div class="slot-name">${p1n||'Person 1'}</div>
@@ -505,7 +501,6 @@ function renderSetup() {
       </div>
       <button class="cta-btn" style="background:${s===1?'var(--rose)':'var(--blue)'};"
         onclick="confirmSlot()" ${s===null?'disabled':''}>Continue →</button>
-      <div class="setup-hint">You'll get a URL to bookmark — your progress lives in Firebase, not this device ✦</div>
     </div>
   `;
 }
