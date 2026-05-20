@@ -469,12 +469,12 @@ async function writePath(path, value) {
 // ── Time-of-day gradient ──────────────────────────────────────────
 const TIME_THEMES = [
   { h:[0,5],  c:['#e2e4f0','#e6e0ee','#dde2f0','#e2e4f0'], accent:'#5858a0', accentLight:'#a0a8e0', label:'night'       },
-  { h:[5,7],  c:['#f4ebe0','#f0e2e8','#f4e8ee','#f4ebe0'], accent:'#a86070', accentLight:'#e0a0b8', label:'dawn'        },
+  { h:[5,7],  c:['#f4ece0','#f0e6d8','#f2e8dc','#f4ece0'], accent:'#c07848', accentLight:'#e0a870', label:'dawn'        },
   { h:[7,10], c:['#f4f0e4','#f0eede','#f2eede','#f4f0e4'], accent:'#887020', accentLight:'#d0b840', label:'morning'     },
   { h:[10,13],c:['#e4eee6','#e0eaf4','#e8f0e8','#e0eaf4'], accent:'#307888', accentLight:'#68b8d0', label:'midday'      },
-  { h:[13,16],c:['#f0ece2','#eee2ea','#f2eae0','#f0ece2'], accent:'#9a6840', accentLight:'#e09870', label:'afternoon'   },
+  { h:[13,16],c:['#f0ece2','#ede8de','#f2eae0','#f0ece2'], accent:'#9a6840', accentLight:'#e09860', label:'afternoon'   },
   { h:[16,18],c:['#f0e8da','#eadec8','#eeddd2','#f0e8da'], accent:'#906038', accentLight:'#d89858', label:'golden hour' },
-  { h:[18,20],c:['#eeddd6','#ecd8e0','#e8daf0','#eeddd6'], accent:'#984060', accentLight:'#e07898', label:'sunset'      },
+  { h:[18,20],c:['#eae0f2','#e4d8ec','#e8dcf0','#eae0f2'], accent:'#7058a0', accentLight:'#a888d0', label:'sunset'      },
   { h:[20,22],c:['#e2dcea','#dadee8','#d8e6f0','#e2dcea'], accent:'#5068b0', accentLight:'#8aaae0', label:'dusk'        },
   { h:[22,24],c:['#e2e4f0','#e6e0ee','#dde2f0','#e2e4f0'], accent:'#5858a0', accentLight:'#a0a8e0', label:'night'       },
 ];
@@ -588,26 +588,48 @@ function showBookBanner(book) {
   });
 }
 
+function loadCachedShared() {
+  try {
+    const s = localStorage.getItem('nt-shared-cache');
+    if (s) shared = JSON.parse(s);
+  } catch {}
+}
+function saveCachedShared() {
+  try { localStorage.setItem('nt-shared-cache', JSON.stringify(shared)); } catch {}
+}
+function loadCachedConfig() {
+  try { return JSON.parse(localStorage.getItem('nt-fb-cfg') || 'null'); } catch { return null; }
+}
+function saveCachedConfig(cfg) {
+  try { localStorage.setItem('nt-fb-cfg', JSON.stringify(cfg)); } catch {}
+}
+
 async function init() {
-  applyTimeTheme(); // sets theme + renders ambient strip (moon + time label)
+  applyTimeTheme();
   setInterval(applyTimeTheme, 5 * 60 * 1000);
-  fetchWeather(); // async — re-tints gradient + adds weather to strip when done
+  fetchWeather();
   setInterval(fetchWeather, 30 * 60 * 1000);
   loadExpandedWeeks();
-  render(); // show UI immediately; Firebase will update it
+  loadCachedShared();  // restore last known state instantly
+  render();            // show UI with cached data — no waiting
 
-  let cfg = null;
-  try {
-    const res = await fetch('/api/firebase-config');
-    cfg = await res.json();
-  } catch (e) {
-    console.warn('Could not reach /api/firebase-config:', e);
+  // Use cached Firebase config if available; refresh in background
+  let cfg = loadCachedConfig();
+  if (cfg) {
+    fetch('/api/firebase-config').then(r => r.json()).then(fresh => {
+      if (fresh?.apiKey) saveCachedConfig(fresh);
+    }).catch(() => {});
+  } else {
+    try {
+      const res = await fetch('/api/firebase-config');
+      cfg = await res.json();
+      if (cfg?.apiKey) saveCachedConfig(cfg);
+    } catch (e) {
+      console.warn('Could not reach /api/firebase-config:', e);
+    }
   }
 
-  if (!cfg?.apiKey) {
-    renderConfigNotice();
-    return;
-  }
+  if (!cfg?.apiKey) { renderConfigNotice(); return; }
 
   try {
     firebase.initializeApp(cfg);
@@ -619,6 +641,7 @@ async function init() {
           p1: {name: val.p1?.name||'', done: val.p1?.done||{}, notes: val.p1?.notes||{}},
           p2: {name: val.p2?.name||'', done: val.p2?.done||{}, notes: val.p2?.notes||{}}
         };
+        saveCachedShared(); // keep cache fresh for next visit
       }
       render();
     });
