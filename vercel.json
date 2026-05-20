@@ -1,9 +1,6 @@
 {
   "cleanUrls": true,
-  "routes": [
-    { "src": "/nt-plan",  "dest": "/nt-plan.html" },
-    { "src": "/reading",  "dest": "/reading.html" },
-    { "handle": "filesystem" },
-    { "src": "/(?!api/).*", "dest": "/" }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/" }
   ]
 }
