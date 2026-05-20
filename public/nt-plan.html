@@ -23,10 +23,10 @@
       --radius: 18px;
       --radius-sm: 10px;
       /* time-of-day gradient stops — updated by JS */
-      --grad-1: #e0f2fe;
-      --grad-2: #f0fdf4;
-      --grad-3: #ecfeff;
-      --grad-4: #e0f2fe;
+      --grad-1: #e3e9ee;
+      --grad-2: #dfe6ec;
+      --grad-3: #e6ecf0;
+      --grad-4: #e3e9ee;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     @keyframes bg-breathe {
@@ -246,6 +246,19 @@
     }
     .note-empty { font-size: 12px; color: var(--hint); font-style: italic; }
 
+    #ambient-strip {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--hint);
+      letter-spacing: 0.07em;
+      font-family: 'Nunito', sans-serif;
+      margin-bottom: 20px;
+      min-height: 14px;
+      user-select: none;
+      opacity: 0.72;
+    }
+
     @media (max-width: 480px) {
       .page { padding: 24px 14px 60px; }
       .header-title { font-size: 24px; }
@@ -257,8 +270,11 @@
   </style>
 </head>
 <body>
-<div class="page" id="app">
-  <div style="padding:60px 0;text-align:center;color:#a8a29e;font-family:'Nunito',sans-serif;font-size:14px;">Loading…</div>
+<div class="page">
+  <div id="ambient-strip"></div>
+  <div id="app">
+    <div style="padding:60px 0;text-align:center;color:#a8a29e;font-family:'Nunito',sans-serif;font-size:14px;">Loading…</div>
+  </div>
 </div>
 
 <script>
@@ -397,23 +413,89 @@ async function writePath(path, value) {
 
 // ── Time-of-day gradient ──────────────────────────────────────────
 const TIME_THEMES = [
-  { h:[0,5],  c:['#dde1ff','#e8d5f5','#c8d5f5','#dde1ff'], accent:'#7c6af6' }, // night
-  { h:[5,7],  c:['#ffecd2','#ffd1dc','#fce4ec','#ffecd2'], accent:'#d4737d' }, // dawn
-  { h:[7,10], c:['#fffde7','#fff8e1','#fef9c3','#fffde7'], accent:'#b8860b' }, // morning
-  { h:[10,13],c:['#e8f5e9','#e3f2fd','#f1f8e9','#e3f2fd'], accent:'#3a8fa3' }, // midday
-  { h:[13,16],c:['#fff8e1','#fce4ec','#fff3e0','#fff8e1'], accent:'#c4855a' }, // afternoon
-  { h:[16,18],c:['#fff9c4','#ffe0b2','#ffccbc','#fff9c4'], accent:'#c47c2a' }, // golden hour
-  { h:[18,20],c:['#ffccbc','#f8bbd0','#e9d5ff','#ffccbc'], accent:'#c4566a' }, // sunset
-  { h:[20,22],c:['#e1bee7','#c5cae9','#b3e5fc','#e1bee7'], accent:'#6b7fd4' }, // dusk
-  { h:[22,24],c:['#dde1ff','#e8d5f5','#c8d5f5','#dde1ff'], accent:'#7c6af6' }, // night
+  { h:[0,5],  c:['#e2e4ee','#dcdfe9','#dfe2ec','#e2e4ee'], accent:'#686b96', label:'night'       },
+  { h:[5,7],  c:['#ede8e0','#e8e0d5','#f0e8de','#ede8e0'], accent:'#8a7060', label:'dawn'        },
+  { h:[7,10], c:['#e8ece3','#e4e8df','#ecefe8','#e8ece3'], accent:'#587258', label:'morning'     },
+  { h:[10,13],c:['#e3e9ee','#dfe6ec','#e6ecf0','#e3e9ee'], accent:'#4a7080', label:'midday'      },
+  { h:[13,16],c:['#eee8e0','#e8e0d4','#ece6da','#eee8e0'], accent:'#7a6848', label:'afternoon'   },
+  { h:[16,18],c:['#ede4d2','#e8dcc6','#ecddd0','#ede4d2'], accent:'#906040', label:'golden hour' },
+  { h:[18,20],c:['#ece3dd','#e6dbd4','#e8ddd8','#ece3dd'], accent:'#885060', label:'sunset'      },
+  { h:[20,22],c:['#e4dfe9','#ddd8e6','#e0dcea','#e4dfe9'], accent:'#604878', label:'dusk'        },
+  { h:[22,24],c:['#e2e4ee','#dcdfe9','#dfe2ec','#e2e4ee'], accent:'#686b96', label:'night'       },
 ];
+
+let currentThemeLabel = '';
+let weatherState = null; // { tempF, label, emoji, tint, str }
+
+function hexLerp(a, b, t) {
+  const ah = parseInt(a.slice(1), 16), bh = parseInt(b.slice(1), 16);
+  const ch = (sh) => Math.round(((ah >> sh) & 0xff) + (((bh >> sh) & 0xff) - ((ah >> sh) & 0xff)) * t).toString(16).padStart(2, '0');
+  return '#' + ch(16) + ch(8) + ch(0);
+}
+
+function wmoToWeather(code) {
+  if (code === 0)                   return { label:'clear',         emoji:'☀️',  tint:'#f0e8d0', str:0    };
+  if (code === 1)                   return { label:'mainly clear',  emoji:'🌤',  tint:'#e8e4dc', str:0.05 };
+  if (code === 2)                   return { label:'partly cloudy', emoji:'⛅',  tint:'#e0e0dc', str:0.12 };
+  if (code === 3)                   return { label:'overcast',      emoji:'☁️',  tint:'#d0d0ce', str:0.24 };
+  if (code===45||code===48)         return { label:'fog',           emoji:'🌫',  tint:'#c8c8c6', str:0.20 };
+  if (code>=51&&code<=57)           return { label:'drizzle',       emoji:'🌦',  tint:'#c2cad4', str:0.22 };
+  if (code>=61&&code<=67)           return { label:'rain',          emoji:'🌧️',  tint:'#bcc4d0', str:0.28 };
+  if (code>=71&&code<=77)           return { label:'snow',          emoji:'🌨️',  tint:'#d2e2f0', str:0.22 };
+  if (code>=80&&code<=82)           return { label:'showers',       emoji:'🌦',  tint:'#bcc4d0', str:0.25 };
+  if (code===85||code===86)         return { label:'snow showers',  emoji:'🌨️',  tint:'#d2e2f0', str:0.20 };
+  if (code>=95)                     return { label:'thunderstorm',  emoji:'⛈️',  tint:'#b0b4c2', str:0.35 };
+  return                                   { label:'cloudy',        emoji:'⛅',  tint:'#d4d4d0', str:0.15 };
+}
+
+function getMoonPhase() {
+  const known = new Date('2000-01-06T18:14:00Z');
+  const CYCLE = 29.530588853;
+  const frac = (((Date.now() - known) / 86400000) % CYCLE + CYCLE) % CYCLE / CYCLE;
+  const PHASES = [
+    { name:'new moon',        emoji:'🌑', max:0.0625 },
+    { name:'waxing crescent', emoji:'🌒', max:0.25   },
+    { name:'first quarter',   emoji:'🌓', max:0.375  },
+    { name:'waxing gibbous',  emoji:'🌔', max:0.5    },
+    { name:'full moon',       emoji:'🌕', max:0.5625 },
+    { name:'waning gibbous',  emoji:'🌖', max:0.75   },
+    { name:'last quarter',    emoji:'🌗', max:0.875  },
+    { name:'waning crescent', emoji:'🌘', max:1.0    },
+  ];
+  return PHASES.find(p => frac < p.max) || PHASES[0];
+}
+
+async function fetchWeather() {
+  try {
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=42.3601&longitude=-71.0589&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=America%2FNew_York');
+    const j = await r.json();
+    const w = wmoToWeather(j.current.weather_code);
+    weatherState = { tempF: Math.round(j.current.temperature_2m), ...w };
+    applyTimeTheme(); // re-tint with weather
+  } catch (e) { console.warn('Weather fetch failed:', e); }
+}
+
+function renderAmbientStrip() {
+  const el = document.getElementById('ambient-strip');
+  if (!el) return;
+  const moon = getMoonPhase();
+  const parts = [moon.emoji + ' ' + moon.name];
+  if (weatherState) parts.push(`boston ${weatherState.tempF}°f ${weatherState.emoji} ${weatherState.label}`);
+  if (currentThemeLabel) parts.push(currentThemeLabel);
+  el.textContent = parts.join('  ·  ');
+}
 
 function applyTimeTheme() {
   const h = new Date().getHours();
   const theme = TIME_THEMES.find(t => h >= t.h[0] && h < t.h[1]) || TIME_THEMES[0];
+  currentThemeLabel = theme.label;
   const root = document.documentElement;
-  theme.c.forEach((col, i) => root.style.setProperty(`--grad-${i+1}`, col));
+  const cols = (weatherState && weatherState.str > 0)
+    ? theme.c.map(c => hexLerp(c, weatherState.tint, weatherState.str))
+    : theme.c;
+  cols.forEach((col, i) => root.style.setProperty(`--grad-${i+1}`, col));
   root.style.setProperty('--accent', theme.accent);
+  renderAmbientStrip();
 }
 
 function confettiBurst() {
@@ -459,8 +541,10 @@ function confettiBurst() {
 }
 
 async function init() {
-  applyTimeTheme();
-  setInterval(applyTimeTheme, 5 * 60 * 1000); // refresh every 5 min
+  applyTimeTheme(); // sets theme + renders ambient strip (moon + time label)
+  setInterval(applyTimeTheme, 5 * 60 * 1000);
+  fetchWeather(); // async — re-tints gradient + adds weather to strip when done
+  setInterval(fetchWeather, 30 * 60 * 1000);
   loadExpandedWeeks();
   render(); // show UI immediately; Firebase will update it
 
