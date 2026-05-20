@@ -34,6 +34,14 @@
       50%  { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
+    @keyframes check-pop {
+      0%   { transform: scale(1); }
+      35%  { transform: scale(1.42); }
+      58%  { transform: scale(0.86); }
+      78%  { transform: scale(1.12); }
+      100% { transform: scale(1); }
+    }
+    .check-pop { animation: check-pop 0.45s cubic-bezier(.36,.07,.19,.97) both !important; }
     body {
       font-family: 'Nunito', sans-serif;
       background: linear-gradient(-45deg, var(--grad-1), var(--grad-2), var(--grad-3), var(--grad-4));
@@ -114,6 +122,7 @@
     }
     .day-row:last-child { border-bottom: none; }
     .day-row.both-done { background: #fdfbf8; }
+    .day-row.today-row { border-left: 3px solid var(--accent); padding-left: 15px; }
     .day-date { flex-shrink: 0; width: 78px; }
     .day-weekday { font-size: 11px; color: var(--hint); font-weight: 600; }
     .day-datenum { font-size: 12px; color: var(--muted); font-weight: 600; margin-top: 1px; }
@@ -337,6 +346,7 @@ let shared = {p1:{name:'',done:{},notes:{}}, p2:{name:'',done:{},notes:{}}};
 let expandedWeeks = new Set();
 let openNotes = new Set(); // dayIds whose note panel is open
 let db = null;
+let pendingCheckAnim = null; // {id, pk} — set before render(), consumed after
 
 function initials(n) {
   if (!n) return '?';
@@ -345,6 +355,15 @@ function initials(n) {
 function fmtShort(d) { return `${MONTHS[d.getMonth()]} ${d.getDate()}`; }
 function pkey(s) { return s===0 ? 'p1' : 'p2'; }
 function pctOf(done, total) { return total===0 ? 0 : Math.round(Object.keys(done||{}).length/total*100); }
+function getTodayId() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const entry = SCHED.find(d => {
+    const dd = new Date(d.date); dd.setHours(0,0,0,0);
+    return dd.getTime() === today.getTime();
+  });
+  return entry ? entry.id : null;
+}
+
 function findCurrentWeekIdx() {
   const today = new Date(); today.setHours(0,0,0,0);
   for (let i=0; i<WEEKS.length; i++) {
@@ -395,6 +414,48 @@ function applyTimeTheme() {
   const root = document.documentElement;
   theme.c.forEach((col, i) => root.style.setProperty(`--grad-${i+1}`, col));
   root.style.setProperty('--accent', theme.accent);
+}
+
+function confettiBurst() {
+  const COLS = ['#f9c846','#f87171','#60a5fa','#34d399','#a78bfa','#fb923c','#f472b6'];
+  const cx = 50, cy = 42; // viewport % origin
+  const particles = [];
+  for (let i = 0; i < 88; i++) {
+    const el = document.createElement('div');
+    const sz = 5 + Math.random() * 7;
+    el.style.cssText = `position:fixed;pointer-events:none;z-index:9999;` +
+      `width:${sz}px;height:${sz}px;` +
+      `background:${COLS[Math.floor(Math.random()*COLS.length)]};` +
+      `border-radius:${Math.random()>0.45?'50%':'2px'};` +
+      `left:${cx}vw;top:${cy}vh;will-change:transform,opacity;`;
+    document.body.appendChild(el);
+    const angle = Math.random() * Math.PI * 2;
+    const spd = 0.18 + Math.random() * 0.38;
+    particles.push({
+      el, x:cx, y:cy,
+      vx: Math.cos(angle)*spd,
+      vy: Math.sin(angle)*spd - 0.55,
+      gravity: 0.016 + Math.random()*0.012,
+      rot: Math.random()*360, rotV: (Math.random()-0.5)*14,
+      opacity: 1,
+    });
+  }
+  let t = 0;
+  function tick() {
+    t++; let alive = false;
+    for (const p of particles) {
+      p.vy += p.gravity; p.x += p.vx; p.y += p.vy;
+      p.rot += p.rotV;
+      if (t > 28) p.opacity = Math.max(0, p.opacity - 0.02);
+      p.el.style.left = p.x + 'vw'; p.el.style.top = p.y + 'vh';
+      p.el.style.transform = `rotate(${p.rot}deg)`;
+      p.el.style.opacity = p.opacity;
+      if (p.opacity > 0) alive = true;
+    }
+    if (alive) requestAnimationFrame(tick);
+    else particles.forEach(p => p.el.remove());
+  }
+  requestAnimationFrame(tick);
 }
 
 async function init() {
@@ -458,12 +519,24 @@ async function saveName() {
 async function toggleDay(id) {
   const pk = pkey(mySlot);
   const isDone = !!(shared[pk]?.done || {})[id];
-  // optimistic local update
   if (!shared[pk].done) shared[pk].done = {};
-  if (isDone) delete shared[pk].done[id];
-  else shared[pk].done[id] = true;
+  if (isDone) {
+    delete shared[pk].done[id];
+  } else {
+    shared[pk].done[id] = true;
+    pendingCheckAnim = {id, pk};
+    // confetti when both are now done
+    const otherPk = pk === 'p1' ? 'p2' : 'p1';
+    if ((shared[otherPk]?.done || {})[id]) setTimeout(confettiBurst, 320);
+  }
   render();
-  // surgical write — only touches this one day, never overwrites the other person
+  if (pendingCheckAnim) {
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`av-${pk}-${id}`);
+      if (el) { el.classList.add('check-pop'); setTimeout(() => el.classList.remove('check-pop'), 500); }
+      pendingCheckAnim = null;
+    });
+  }
   await writePath(`nt-plan/${pk}/done/${id}`, isDone ? null : true);
 }
 
@@ -660,6 +733,8 @@ function renderMain() {
     </div>
   `;
 
+  const todayId = getTodayId();
+
   for (let wi=0; wi<WEEKS.length; wi++) {
     const week = WEEKS[wi];
     const isExp = expandedWeeks.has(wi);
@@ -694,6 +769,7 @@ function renderMain() {
         const done1 = !!(p1.done||{})[d.id];
         const done2 = !!(p2.done||{})[d.id];
         const bothDone = done1 && done2;
+        const isToday = d.id === todayId;
         const pc = PHASE_COLORS[d.phase];
         const av1bg = done1 ? 'var(--blue)' : 'var(--blue-bg)', av1fg = done1 ? '#fff' : 'var(--blue)';
         const av2bg = done2 ? 'var(--rose)' : 'var(--rose-bg)', av2fg = done2 ? '#fff' : 'var(--rose)';
@@ -731,7 +807,7 @@ function renderMain() {
         }
 
         html += `
-          <div class="day-row${bothDone?' both-done':''}">
+          <div class="day-row${bothDone?' both-done':''}${isToday?' today-row':''}">
             <div class="day-date">
               <div class="day-weekday">${WDAYS[d.date.getDay()]}</div>
               <div class="day-datenum">${fmtShort(d.date)}</div>
@@ -744,12 +820,14 @@ function renderMain() {
                 ${noteOpen ? '✕' : '✎'}
               </button>
               <div class="check-avatar ${mySlot===0?'mine':'not-mine'}"
+                id="av-p1-${d.id}"
                 style="background:${av1bg};color:${av1fg};"
                 ${mySlot===0?`onclick="toggleDay(${d.id})"`:''}
                 title="${p1.name||'Person 1'}">
                 ${done1?'<span class="checkmark">✓</span>':initials(p1.name||'P1')}
               </div>
               <div class="check-avatar ${mySlot===1?'mine':'not-mine'}"
+                id="av-p2-${d.id}"
                 style="background:${av2bg};color:${av2fg};"
                 ${mySlot===1?`onclick="toggleDay(${d.id})"`:''}
                 title="${p2.name||'Person 2'}">
