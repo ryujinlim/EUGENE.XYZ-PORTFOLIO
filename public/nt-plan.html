@@ -24,9 +24,16 @@
       --radius-sm: 10px;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    @keyframes bg-breathe {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
     body {
       font-family: 'Nunito', sans-serif;
-      background: var(--bg);
+      background: linear-gradient(-45deg, #fdf9f4, #f5f0ee, #eef2f7, #f5eef5);
+      background-size: 400% 400%;
+      animation: bg-breathe 30s ease infinite;
       color: var(--text);
       min-height: 100vh;
     }
@@ -49,7 +56,7 @@
     .header-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
 
     .progress-grid {
-      display: grid; grid-template-columns: 1fr 1fr;
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px; margin-bottom: 28px;
     }
     .progress-card {
@@ -57,6 +64,7 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 16px; box-shadow: var(--shadow);
+      min-width: 0;
     }
     .progress-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
     .avatar-lg {
@@ -64,8 +72,8 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 12px; font-weight: 700; flex-shrink: 0;
     }
-    .name-label { font-size: 13px; font-weight: 700; line-height: 1.2; }
-    .count-label { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .name-label { font-size: 13px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .count-label { font-size: 11px; color: var(--muted); margin-top: 1px; white-space: nowrap; }
     .pbar-track { height: 6px; border-radius: 99px; background: #f0ece7; overflow: hidden; }
     .pbar-fill { height: 100%; border-radius: 99px; transition: width 0.4s cubic-bezier(.4,0,.2,1); }
     .you-tag {
