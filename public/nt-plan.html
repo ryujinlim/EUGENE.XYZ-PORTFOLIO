@@ -22,6 +22,11 @@
       --shadow: 0 2px 20px rgba(0,0,0,0.06);
       --radius: 18px;
       --radius-sm: 10px;
+      /* time-of-day gradient stops — updated by JS */
+      --grad-1: #e0f2fe;
+      --grad-2: #f0fdf4;
+      --grad-3: #ecfeff;
+      --grad-4: #e0f2fe;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     @keyframes bg-breathe {
@@ -31,9 +36,9 @@
     }
     body {
       font-family: 'Nunito', sans-serif;
-      background: linear-gradient(-45deg, #fde8e8, #e8eafd, #e8fdf0, #fdf5e8);
+      background: linear-gradient(-45deg, var(--grad-1), var(--grad-2), var(--grad-3), var(--grad-4));
       background-size: 400% 400%;
-      animation: bg-breathe 20s ease infinite;
+      animation: bg-breathe 22s ease infinite;
       color: var(--text);
       min-height: 100vh;
     }
@@ -371,7 +376,29 @@ async function writePath(path, value) {
   } catch (e) { console.error('Firebase write error:', e); }
 }
 
+// ── Time-of-day gradient ──────────────────────────────────────────
+const TIME_THEMES = [
+  { h:[0,5],  c:['#dde1ff','#e8d5f5','#c8d5f5','#dde1ff'] }, // night  — soft indigo/lavender
+  { h:[5,7],  c:['#ffecd2','#ffd1dc','#fce4ec','#ffecd2'] }, // dawn   — peach/blush
+  { h:[7,10], c:['#fffde7','#fff8e1','#fef9c3','#fffde7'] }, // morning — warm gold cream
+  { h:[10,13],c:['#e8f5e9','#e3f2fd','#f1f8e9','#e3f2fd'] }, // midday — mint/sky
+  { h:[13,16],c:['#fff8e1','#fce4ec','#fff3e0','#fff8e1'] }, // afternoon — warm soft
+  { h:[16,18],c:['#fff9c4','#ffe0b2','#ffccbc','#fff9c4'] }, // golden hour — amber/sand
+  { h:[18,20],c:['#ffccbc','#f8bbd0','#e9d5ff','#ffccbc'] }, // sunset — coral/rose/lavender
+  { h:[20,22],c:['#e1bee7','#c5cae9','#b3e5fc','#e1bee7'] }, // dusk   — mauve/periwinkle
+  { h:[22,24],c:['#dde1ff','#e8d5f5','#c8d5f5','#dde1ff'] }, // night
+];
+
+function applyTimeTheme() {
+  const h = new Date().getHours();
+  const theme = TIME_THEMES.find(t => h >= t.h[0] && h < t.h[1]) || TIME_THEMES[0];
+  const root = document.documentElement;
+  theme.c.forEach((col, i) => root.style.setProperty(`--grad-${i+1}`, col));
+}
+
 async function init() {
+  applyTimeTheme();
+  setInterval(applyTimeTheme, 5 * 60 * 1000); // refresh every 5 min
   loadExpandedWeeks();
   render(); // show UI immediately; Firebase will update it
 
@@ -489,58 +516,100 @@ function renderConfigNotice() {
 
 
 function renderSetup() {
-  const p1n = shared.p1?.name||'';
-  const p2n = shared.p2?.name||'';
+  const p1n = shared.p1?.name || '';
+  const p2n = shared.p2?.name || '';
   const s = setupSlot;
-  document.getElementById('app').innerHTML = `
-    <div class="header">
-      <div class="header-eyebrow">Summer 2026</div>
-      <div class="header-title">NT Reading Plan</div>
-      <div class="header-sub">                             </div>
-    </div>
-    <div class="setup-wrap">
-        <div class="slot-card ${s===0?'selected-blue':''}" onclick="selectSlot(0)">
-          <div class="slot-av-lg" style="background:var(--blue-bg);color:var(--blue);">${p1n?initials(p1n):'1'}</div>
-          <div class="slot-name">${p1n||'Person 1'}</div>
-          <div class="slot-status">${p1n?'✦ claimed':'open'}</div>
-        </div>
-        <div class="slot-card ${s===1?'selected-rose':''}" onclick="selectSlot(1)">
-          <div class="slot-av-lg" style="background:var(--rose-bg);color:var(--rose);">${p2n?initials(p2n):'2'}</div>
-          <div class="slot-name">${p2n||'Person 2'}</div>
-          <div class="slot-status">${p2n?'✦ claimed':'open'}</div>
-        </div>
+  const card = (slot, name, sel) => `
+    <div onclick="selectSlot(${slot})" style="
+      flex:1; min-width:0; text-align:center; cursor:pointer;
+      background:rgba(255,255,255,0.88); backdrop-filter:blur(10px);
+      border:2px solid ${sel ? '#111' : 'rgba(0,0,0,0.1)'};
+      border-radius:18px; padding:24px 14px;
+      transition:transform 0.12s, border-color 0.12s;
+      box-shadow:0 4px 24px rgba(0,0,0,0.07);">
+      <div style="width:52px;height:52px;border-radius:50%;
+        background:${sel ? '#111' : '#eeeeee'};
+        color:${sel ? '#fff' : '#555'};
+        display:flex;align-items:center;justify-content:center;
+        font-size:17px;font-weight:800;margin:0 auto 12px;
+        transition:background 0.15s;">
+        ${name ? initials(name) : slot + 1}
       </div>
-      <button class="cta-btn" style="background:${s===1?'var(--rose)':'var(--blue)'};"
-        onclick="confirmSlot()" ${s===null?'disabled':''}>Continue →</button>
-      <div class="setup-hint">                                                         </div>
+      <div style="font-size:14px;font-weight:700;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        ${name || 'Person ' + (slot + 1)}
+      </div>
+      <div style="font-size:11px;color:#999;margin-top:4px;">${name ? '✦ claimed' : 'open'}</div>
+    </div>`;
+
+  document.getElementById('app').innerHTML = `
+    <div style="min-height:calc(100vh - 120px);display:flex;flex-direction:column;
+      align-items:center;justify-content:center;text-align:center;padding:40px 0;">
+      <div style="margin-bottom:44px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+          color:#aaa;margin-bottom:10px;">Summer 2026</div>
+        <div style="font-family:'Lora',serif;font-size:34px;font-weight:500;
+          color:#111;line-height:1.2;margin-bottom:8px;">NT Reading Plan</div>
+        <div style="font-size:13px;color:#888;">4 chapters · every day · Jun 1 → Aug 4</div>
+      </div>
+      <div style="display:flex;flex-direction:row;gap:14px;width:100%;max-width:360px;margin-bottom:28px;">
+        ${card(0, p1n, s === 0)}
+        ${card(1, p2n, s === 1)}
+      </div>
+      <button onclick="confirmSlot()" ${s === null ? 'disabled' : ''} style="
+        padding:13px 40px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+        background:#111;color:#fff;border:none;border-radius:12px;
+        cursor:${s === null ? 'default' : 'pointer'};
+        opacity:${s === null ? 0.35 : 1};
+        transition:opacity 0.15s,transform 0.1s;
+        box-shadow:0 4px 16px rgba(0,0,0,0.15);">
+        Continue →
+      </button>
+      <div style="font-size:11px;color:#bbb;margin-top:18px;max-width:260px;line-height:1.7;">
+        Bookmark your URL — progress lives in the cloud ✦
+      </div>
     </div>
   `;
 }
 
 function renderNameEntry() {
-  const isAmber = mySlot===1;
-  const color = isAmber ? 'var(--rose)' : 'var(--blue)';
-  const other = mySlot===0 ? (shared.p2?.name||'') : (shared.p1?.name||'');
+  const other = mySlot === 0 ? (shared.p2?.name || '') : (shared.p1?.name || '');
   document.getElementById('app').innerHTML = `
-    <div class="header">
-      <div class="header-eyebrow">Summer 2026</div>
-      <div class="header-title">NT Reading Plan</div>
-    </div>
-    <div class="setup-wrap">
-      <div class="setup-title">What's your name?</div>
-      <div class="setup-sub">${other?`Reading with <strong>${other}</strong> ✦`:'Your reading partner will join soon.'}</div>
-      <input id="nameInput" class="name-input" type="text" placeholder="Your name" maxlength="20"
-        style="border-color:${color};" autocomplete="off" />
-      <button class="cta-btn" style="background:${color};" onclick="saveName()">Start reading →</button>
-      <div id="savingLabel" class="saving-label"></div>
-      <div class="setup-hint" style="margin-top:12px;">
-        <span onclick="switchSlot()" style="cursor:pointer;text-decoration:underline;">← Switch slot</span>
+    <div style="min-height:calc(100vh - 120px);display:flex;flex-direction:column;
+      align-items:center;justify-content:center;text-align:center;padding:40px 0;">
+      <div style="margin-bottom:36px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+          color:#aaa;margin-bottom:10px;">Summer 2026</div>
+        <div style="font-family:'Lora',serif;font-size:34px;font-weight:500;
+          color:#111;line-height:1.2;margin-bottom:8px;">What's your name?</div>
+        <div style="font-size:13px;color:#888;">
+          ${other ? `Reading with <strong style="color:#555;">${other}</strong> ✦` : 'Your reading partner will join soon.'}
+        </div>
+      </div>
+      <input id="nameInput" type="text" placeholder="Your name" maxlength="20" autocomplete="off" style="
+        width:100%;max-width:260px;padding:13px 18px;
+        font-family:'Nunito',sans-serif;font-size:15px;font-weight:600;
+        border:2px solid #ddd;border-radius:12px;
+        background:rgba(255,255,255,0.9);color:#111;
+        outline:none;margin-bottom:14px;text-align:center;
+        transition:border-color 0.15s;" />
+      <button onclick="saveName()" style="
+        padding:13px 40px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+        background:#111;color:#fff;border:none;border-radius:12px;
+        cursor:pointer;transition:opacity 0.15s;
+        box-shadow:0 4px 16px rgba(0,0,0,0.15);">
+        Start reading →
+      </button>
+      <div id="savingLabel" style="font-size:11px;color:#bbb;margin-top:10px;min-height:16px;"></div>
+      <div style="font-size:12px;color:#ccc;margin-top:14px;">
+        <span onclick="switchSlot()" style="cursor:pointer;text-decoration:underline;color:#aaa;">← Switch slot</span>
       </div>
     </div>
   `;
   const inp = document.getElementById('nameInput');
   inp.focus();
-  inp.addEventListener('keydown', e => { if (e.key==='Enter') saveName(); });
+  inp.addEventListener('focus', () => inp.style.borderColor = '#999');
+  inp.addEventListener('blur',  () => inp.style.borderColor = '#ddd');
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') saveName(); });
 }
 
 function renderMain() {
