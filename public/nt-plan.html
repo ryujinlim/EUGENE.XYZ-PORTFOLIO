@@ -31,9 +31,9 @@
     }
     body {
       font-family: 'Nunito', sans-serif;
-      background: linear-gradient(-45deg, #fdf9f4, #f5f0ee, #eef2f7, #f5eef5);
+      background: linear-gradient(-45deg, #fde8e8, #e8eafd, #e8fdf0, #fdf5e8);
       background-size: 400% 400%;
-      animation: bg-breathe 30s ease infinite;
+      animation: bg-breathe 20s ease infinite;
       color: var(--text);
       min-height: 100vh;
     }
@@ -56,15 +56,15 @@
     .header-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
 
     .progress-grid {
-      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+      display: flex; flex-direction: row;
       gap: 12px; margin-bottom: 28px;
     }
     .progress-card {
+      flex: 1; min-width: 0;
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 16px; box-shadow: var(--shadow);
-      min-width: 0;
     }
     .progress-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
     .avatar-lg {
@@ -137,9 +137,10 @@
     }
     .setup-sub { font-size: 13px; color: var(--muted); margin-bottom: 32px; line-height: 1.6; }
     .slot-grid {
-      display: grid; grid-template-columns: 1fr 1fr;
+      display: flex; flex-direction: row;
       gap: 12px; width: 100%; max-width: 380px; margin-bottom: 20px;
     }
+    .slot-card { flex: 1; min-width: 0; }
     .slot-card {
       background: var(--card); border: 2px solid var(--border);
       border-radius: var(--radius); padding: 20px 16px;
