@@ -320,10 +320,12 @@ function loadExpandedWeeks() {
   expandedWeeks.add(findCurrentWeekIdx());
 }
 
-async function writeShared() {
+async function writePath(path, value) {
   if (!db) return;
-  try { await db.ref('nt-plan').set(shared); }
-  catch (e) { console.error('Firebase write error:', e); }
+  try {
+    if (value === null) await db.ref(path).remove();
+    else await db.ref(path).set(value);
+  } catch (e) { console.error('Firebase write error:', e); }
 }
 
 async function init() {
@@ -376,22 +378,22 @@ async function saveName() {
   const val = input.value.trim();
   if (!val) return;
   const pk = pkey(mySlot);
-  if (!shared[pk]) shared[pk] = {name:'', done:{}};
-  shared[pk].name = val;
-  if (!shared[pk].done) shared[pk].done = {};
   const lbl = document.getElementById('savingLabel');
   if (lbl) lbl.textContent = 'Saving…';
-  await writeShared();
-  if (!db) render();
+  await writePath(`nt-plan/${pk}/name`, val);
+  if (!db) { shared[pk] = shared[pk] || {name:'',done:{}}; shared[pk].name = val; render(); }
 }
 
 async function toggleDay(id) {
   const pk = pkey(mySlot);
+  const isDone = !!(shared[pk]?.done || {})[id];
+  // optimistic local update
   if (!shared[pk].done) shared[pk].done = {};
-  if (shared[pk].done[id]) delete shared[pk].done[id];
+  if (isDone) delete shared[pk].done[id];
   else shared[pk].done[id] = true;
   render();
-  await writeShared();
+  // surgical write — only touches this one day, never overwrites the other person
+  await writePath(`nt-plan/${pk}/done/${id}`, isDone ? null : true);
 }
 
 function toggleWeek(wi) {
