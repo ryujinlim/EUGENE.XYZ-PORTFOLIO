@@ -10,7 +10,8 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
-      "Bash(git commit -m 'Make gradient visible; fix horizontal layout with flexbox *)"
+      "Bash(git commit -m 'Make gradient visible; fix horizontal layout with flexbox *)",
+      "Bash(git pull *)"
     ]
   }
 }
