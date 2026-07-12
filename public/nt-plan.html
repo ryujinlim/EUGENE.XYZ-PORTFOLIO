@@ -1,24 +1,1019 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NT Reading Plan</title>
+  <title>NT Reading Plan · Summer 2026</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;1,400&display=swap" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
   <style>
+    :root {
+      --blue: #111111;
+      --blue-bg: #efefef;
+      --rose: #666666;
+      --rose-bg: #f0f0f0;
+      --bg: #fafafa;
+      --card: #ffffff;
+      --border: rgba(0,0,0,0.09);
+      --text: #111111;
+      --muted: #555555;
+      --hint: #999999;
+      --shadow: 0 2px 20px rgba(0,0,0,0.06);
+      --radius: 18px;
+      --radius-sm: 10px;
+      /* time-of-day gradient stops — updated by JS */
+      --grad-1: #e4eee6;
+      --grad-2: #e0eaf4;
+      --grad-3: #e8f0e8;
+      --grad-4: #e0eaf4;
+      --accent-light: #50a0b0;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    @keyframes bg-breathe {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes check-pop {
+      0%   { transform: scale(1); }
+      35%  { transform: scale(1.42); }
+      58%  { transform: scale(0.86); }
+      78%  { transform: scale(1.12); }
+      100% { transform: scale(1); }
+    }
+    .check-pop { animation: check-pop 0.45s cubic-bezier(.36,.07,.19,.97) both !important; }
     body {
-      margin: 0;
+      font-family: 'Nunito', sans-serif;
+      background: linear-gradient(-45deg, var(--grad-1), var(--grad-2), var(--grad-3), var(--grad-4));
+      background-size: 400% 400%;
+      animation: bg-breathe 22s ease infinite;
+      color: var(--text);
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: sans-serif;
+    }
+    .page {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+    .header { margin-bottom: 32px; }
+    .header-eyebrow {
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--hint); margin-bottom: 6px;
+    }
+    .header-title {
+      font-family: 'Lora', serif;
+      font-size: 28px; font-weight: 500;
+      color: var(--text); line-height: 1.2;
+    }
+    .header-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    .progress-grid {
+      display: flex; flex-direction: row;
+      gap: 12px; margin-bottom: 28px;
+    }
+    .progress-card {
+      flex: 1; min-width: 0;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px; box-shadow: var(--shadow);
+    }
+    .progress-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .avatar-lg {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+    .name-label { font-size: 13px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .count-label { font-size: 11px; color: var(--muted); margin-top: 1px; white-space: nowrap; }
+    .pbar-track { height: 6px; border-radius: 99px; background: #f0ece7; overflow: hidden; }
+    .pbar-fill { height: 100%; border-radius: 99px; transition: width 0.4s cubic-bezier(.4,0,.2,1); }
+    .you-tag {
+      font-size: 10px; font-weight: 700;
+      padding: 2px 7px; border-radius: 99px;
+      margin-left: 4px; vertical-align: middle;
+    }
+
+    .week { margin-bottom: 8px; }
+    .week-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+    }
+    .week-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; cursor: pointer; user-select: none;
+      transition: background 0.1s;
+    }
+    .week-header:hover { background: #faf8f5; }
+    .week-header-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .week-num { font-size: 14px; font-weight: 700; }
+    .week-dates { font-size: 12px; color: var(--muted); }
+    .week-header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .mini-progress { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; }
+    .chevron { font-size: 14px; color: var(--hint); transition: transform 0.2s; display: inline-block; }
+    .chevron.open { transform: rotate(180deg); }
+    .week-body { border-top: 1px solid var(--border); }
+
+    .day-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 18px; border-bottom: 1px solid #f5f0eb;
+      transition: background 0.1s;
+    }
+    .day-row:last-child { border-bottom: none; }
+    .day-row.both-done { background: #fdfbf8; }
+    .day-row.today-row { border-left: 3px solid var(--accent); padding-left: 15px; }
+    .day-date { flex-shrink: 0; width: 78px; }
+    .day-weekday { font-size: 11px; color: var(--hint); font-weight: 600; }
+    .day-datenum { font-size: 12px; color: var(--muted); font-weight: 600; margin-top: 1px; }
+    .phase-pip { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .day-reading { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; }
+    .day-reading.faded { color: var(--hint); text-decoration: line-through; }
+    .day-checks { display: flex; gap: 7px; flex-shrink: 0; }
+    .check-avatar {
+      width: 26px; height: 26px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; user-select: none; flex-shrink: 0;
+      transition: transform 0.15s, opacity 0.15s, background 0.2s, border-color 0.2s;
+    }
+    .check-avatar.mine:hover { transform: scale(1.08); }
+    .check-avatar.not-mine { cursor: default; opacity: 0.7; }
+
+    .setup-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 20px 0 40px; text-align: center;
+    }
+    .setup-title {
+      font-family: 'Lora', serif;
+      font-size: 24px; font-weight: 500; margin-bottom: 6px;
+    }
+    .setup-sub { font-size: 13px; color: var(--muted); margin-bottom: 32px; line-height: 1.6; }
+    .slot-grid {
+      display: flex; flex-direction: row;
+      gap: 12px; width: 100%; max-width: 380px; margin-bottom: 20px;
+    }
+    .slot-card { flex: 1; min-width: 0; }
+    .slot-card {
+      background: var(--card); border: 2px solid var(--border);
+      border-radius: var(--radius); padding: 20px 16px;
+      cursor: pointer; transition: border-color 0.15s, transform 0.1s; text-align: center;
+    }
+    .slot-card:hover { transform: translateY(-1px); }
+    .slot-card.selected-blue { border-color: var(--blue); }
+    .slot-card.selected-rose { border-color: var(--rose); }
+    .slot-av-lg {
+      width: 48px; height: 48px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800; margin: 0 auto 10px;
+    }
+    .slot-name { font-size: 14px; font-weight: 700; }
+    .slot-status { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .name-input {
+      width: 100%; max-width: 280px;
+      padding: 12px 16px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 15px; font-weight: 600;
+      border: 2px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--card); color: var(--text);
+      outline: none; margin-bottom: 14px;
+      transition: border-color 0.15s; text-align: center;
+    }
+    .cta-btn {
+      padding: 12px 32px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px; font-weight: 700;
+      border: none; border-radius: var(--radius-sm);
+      cursor: pointer; color: #fff;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .cta-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .cta-btn:active { transform: scale(0.98); }
+    .cta-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+    .setup-hint { font-size: 12px; color: var(--hint); margin-top: 16px; max-width: 300px; line-height: 1.6; }
+    .saving-label { font-size: 11px; color: var(--hint); margin-top: 8px; min-height: 16px; }
+
+    .phase-chip {
+      font-size: 10px; font-weight: 700;
+      padding: 2px 8px; border-radius: 99px;
+      background: #f0ece7; color: var(--muted); letter-spacing: 0.02em;
+    }
+    .config-notice {
+      background: #fff8ed; border: 1px solid #f5d89e;
+      border-radius: var(--radius-sm); padding: 20px 24px;
+      font-size: 13px; color: #7c5c1e; line-height: 1.7;
+    }
+    .config-notice strong { font-weight: 700; }
+    .config-notice code {
+      font-family: monospace; background: rgba(0,0,0,0.07);
+      padding: 1px 5px; border-radius: 4px; font-size: 12px;
+    }
+    .config-notice ol { margin: 10px 0 0 16px; }
+    .config-notice li { margin-bottom: 6px; }
+
+    /* ── Notes ── */
+    .note-toggle {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: rgba(0,0,0,0.05); border: 1.5px solid rgba(0,0,0,0.10);
+      border-radius: 99px; cursor: pointer; flex-shrink: 0;
+      color: var(--muted); font-size: 11px; font-weight: 700;
+      padding: 5px 11px; line-height: 1; letter-spacing: 0.02em;
+      transition: all 0.15s; font-family: 'Nunito', sans-serif;
+    }
+    .note-toggle:hover { background: rgba(0,0,0,0.09); border-color: rgba(0,0,0,0.18); }
+    .note-toggle.has-note { background: var(--accent-light); border-color: transparent; color: #fff; }
+    .note-panel {
+      padding: 16px 18px 18px;
+      border-top: 2px solid var(--accent-light);
+      background: rgba(250,250,252,0.6);
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .note-entry { display: flex; flex-direction: column; gap: 6px; }
+    .note-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--accent-light);
+    }
+    .note-textarea {
+      font-family: 'Nunito', sans-serif; font-size: 13px;
+      color: var(--text); background: #fff;
+      border: 1.5px solid rgba(0,0,0,0.10); border-radius: 10px;
+      padding: 10px 12px; resize: vertical; min-height: 70px;
+      outline: none; transition: border-color 0.15s; line-height: 1.6;
+    }
+    .note-textarea:focus { border-color: var(--accent-light); }
+    .note-text {
+      font-size: 13px; color: var(--muted); line-height: 1.6;
+      padding: 10px 12px; background: #fff;
+      border-radius: 10px; white-space: pre-wrap;
+      border: 1.5px solid rgba(0,0,0,0.07);
+    }
+    .note-empty { font-size: 12px; color: var(--hint); font-style: italic; }
+
+    #ambient-strip {
       text-align: center;
-      padding: 24px;
-      box-sizing: border-box;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--hint);
+      letter-spacing: 0.07em;
+      font-family: 'Nunito', sans-serif;
+      margin-bottom: 20px;
+      min-height: 14px;
+      user-select: none;
+      opacity: 0.72;
+    }
+
+    @media (max-width: 480px) {
+      .page { padding: 24px 14px 60px; }
+      .header-title { font-size: 24px; }
+      .day-date { width: 60px; }
+      .day-reading { font-size: 12px; }
+      .week-header { padding: 12px 14px; }
+      .day-row { padding: 10px 14px; gap: 8px; }
     }
   </style>
 </head>
 <body>
-  <p>tracker gone... but you should keep reading the Bible on your own : )</p>
+<div class="page">
+  <div id="ambient-strip"></div>
+  <div id="app">
+    <div style="padding:60px 0;text-align:center;color:#a8a29e;font-family:'Nunito',sans-serif;font-size:14px;">Loading…</div>
+  </div>
+</div>
+
+<script>
+const PHASE_COLORS = {1:"#111",2:"#444",3:"#666",4:"#888",5:"#aaa"};
+const PHASE_LABELS = {1:"Gospels",2:"Acts",3:"Epistles",4:"Gen. Epistles",5:"Revelation"};
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const WDAYS  = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function buildSchedule() {
+  // Each entry is one day. Book boundaries are never crossed mid-day.
+  // Short books are grouped together. Variable chapter counts follow natural narrative units.
+  const PLAN = [
+    // Matthew — 7 days (Passion + Resurrection in one sitting)
+    {r:'Matthew 1–4',   p:1, b:['Matthew']},
+    {r:'Matthew 5–8',   p:1, b:['Matthew']},
+    {r:'Matthew 9–12',  p:1, b:['Matthew']},
+    {r:'Matthew 13–16', p:1, b:['Matthew']},
+    {r:'Matthew 17–20', p:1, b:['Matthew']},
+    {r:'Matthew 21–25', p:1, b:['Matthew']},  // Olivet Discourse complete
+    {r:'Matthew 26–28', p:1, b:['Matthew']},  // Passion + Resurrection
+    // Mark — 4 days
+    {r:'Mark 1–4',   p:1, b:['Mark']},
+    {r:'Mark 5–8',   p:1, b:['Mark']},
+    {r:'Mark 9–12',  p:1, b:['Mark']},
+    {r:'Mark 13–16', p:1, b:['Mark']},        // Passion + Resurrection
+    // Luke — 6 days
+    {r:'Luke 1–4',   p:1, b:['Luke']},
+    {r:'Luke 5–8',   p:1, b:['Luke']},
+    {r:'Luke 9–12',  p:1, b:['Luke']},
+    {r:'Luke 13–16', p:1, b:['Luke']},
+    {r:'Luke 17–20', p:1, b:['Luke']},
+    {r:'Luke 21–24', p:1, b:['Luke']},        // Passion + Resurrection
+    // John — 5 days (Upper Room Discourse kept together)
+    {r:'John 1–4',   p:1, b:['John']},
+    {r:'John 5–8',   p:1, b:['John']},
+    {r:'John 9–12',  p:1, b:['John']},
+    {r:'John 13–17', p:1, b:['John']},        // Upper Room + High Priestly Prayer
+    {r:'John 18–21', p:1, b:['John']},        // Passion + Resurrection
+    // Acts — 7 days
+    {r:'Acts 1–4',   p:2, b:['Acts']},
+    {r:'Acts 5–8',   p:2, b:['Acts']},
+    {r:'Acts 9–12',  p:2, b:['Acts']},
+    {r:'Acts 13–16', p:2, b:['Acts']},
+    {r:'Acts 17–20', p:2, b:['Acts']},
+    {r:'Acts 21–24', p:2, b:['Acts']},
+    {r:'Acts 25–28', p:2, b:['Acts']},
+    // Romans — 4 days
+    {r:'Romans 1–4',   p:3, b:['Romans']},
+    {r:'Romans 5–8',   p:3, b:['Romans']},
+    {r:'Romans 9–12',  p:3, b:['Romans']},
+    {r:'Romans 13–16', p:3, b:['Romans']},
+    // 1 Corinthians — 4 days
+    {r:'1 Corinthians 1–4',  p:3, b:['1 Corinthians']},
+    {r:'1 Corinthians 5–8',  p:3, b:['1 Corinthians']},
+    {r:'1 Corinthians 9–12', p:3, b:['1 Corinthians']},
+    {r:'1 Corinthians 13–16',p:3, b:['1 Corinthians']},
+    // 2 Corinthians — 3 days
+    {r:'2 Corinthians 1–4',  p:3, b:['2 Corinthians']},
+    {r:'2 Corinthians 5–9',  p:3, b:['2 Corinthians']},
+    {r:'2 Corinthians 10–13',p:3, b:['2 Corinthians']},
+    // Galatians — 2 days (doctrine / application)
+    {r:'Galatians 1–3', p:3, b:['Galatians']},
+    {r:'Galatians 4–6', p:3, b:['Galatians']},
+    // Ephesians — 2 days (doctrine / application)
+    {r:'Ephesians 1–3', p:3, b:['Ephesians']},
+    {r:'Ephesians 4–6', p:3, b:['Ephesians']},
+    // Philippians — 1 day
+    {r:'Philippians 1–4',    p:3, b:['Philippians']},
+    // Colossians — 1 day
+    {r:'Colossians 1–4',     p:3, b:['Colossians']},
+    // 1 Thessalonians — 1 day
+    {r:'1 Thessalonians 1–5',p:3, b:['1 Thessalonians']},
+    // 2 Thessalonians — 1 day
+    {r:'2 Thessalonians 1–3',p:3, b:['2 Thessalonians']},
+    // 1 Timothy — 2 days
+    {r:'1 Timothy 1–3', p:3, b:['1 Timothy']},
+    {r:'1 Timothy 4–6', p:3, b:['1 Timothy']},
+    // 2 Timothy — 1 day
+    {r:'2 Timothy 1–4',      p:3, b:['2 Timothy']},
+    // Titus + Philemon — 1 day (both short pastoral letters)
+    {r:'Titus 1–3  ·  Philemon', p:3, b:['Titus','Philemon']},
+    // Hebrews — 3 days
+    {r:'Hebrews 1–4',  p:3, b:['Hebrews']},
+    {r:'Hebrews 5–9',  p:3, b:['Hebrews']},
+    {r:'Hebrews 10–13',p:3, b:['Hebrews']},
+    // James — 1 day
+    {r:'James 1–5',   p:4, b:['James']},
+    // 1 Peter — 1 day
+    {r:'1 Peter 1–5', p:4, b:['1 Peter']},
+    // 2 Peter — 1 day
+    {r:'2 Peter 1–3', p:4, b:['2 Peter']},
+    // 1 John — 1 day
+    {r:'1 John 1–5',  p:4, b:['1 John']},
+    // 2 John · 3 John · Jude — 1 day (three short letters)
+    {r:'2 John  ·  3 John  ·  Jude', p:4, b:['2 John','3 John','Jude']},
+    // Revelation — 5 days (natural vision breaks)
+    {r:'Revelation 1–3',   p:5, b:['Revelation']},  // 7 churches
+    {r:'Revelation 4–7',   p:5, b:['Revelation']},  // throne + seals
+    {r:'Revelation 8–11',  p:5, b:['Revelation']},  // trumpets
+    {r:'Revelation 12–16', p:5, b:['Revelation']},  // dragon + bowls
+    {r:'Revelation 17–22', p:5, b:['Revelation']},  // Babylon falls + new creation
+  ];
+  let cur = new Date(2026, 5, 1);
+  return PLAN.map((item, id) => {
+    const entry = {id, date:new Date(cur), reading:item.r, phase:item.p, books:item.b};
+    cur = new Date(cur.getTime() + 864e5);
+    return entry;
+  });
+}
+
+function groupByWeek(sched) {
+  const weeks = []; let lastW = -1;
+  for (const d of sched) {
+    const diff = Math.floor((d.date - sched[0].date) / 864e5);
+    const w = Math.floor(diff/7);
+    if (w !== lastW) { weeks.push({wk:w+1, days:[]}); lastW = w; }
+    weeks[weeks.length-1].days.push(d);
+  }
+  return weeks;
+}
+
+const SCHED = buildSchedule();
+const WEEKS = groupByWeek(SCHED);
+
+// Slot comes purely from URL: ?person=1 or ?person=2
+// Progress lives entirely in Firebase — nothing important is in localStorage
+function getSlotFromURL() {
+  const p = new URLSearchParams(window.location.search).get('person');
+  if (p === '1') return 0;
+  if (p === '2') return 1;
+  return null;
+}
+
+let mySlot = getSlotFromURL(); // 0, 1, or null (viewer/setup)
+let setupSlot = null;
+let shared = {p1:{name:'',done:{},notes:{}}, p2:{name:'',done:{},notes:{}}};
+let expandedWeeks = new Set();
+let openNotes = new Set(); // dayIds whose note panel is open
+let db = null;
+let pendingCheckAnim = null; // {id, pk} — set before render(), consumed after
+
+function initials(n) {
+  if (!n) return '?';
+  return n.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2);
+}
+function fmtShort(d) { return `${MONTHS[d.getMonth()]} ${d.getDate()}`; }
+function pkey(s) { return s===0 ? 'p1' : 'p2'; }
+function pctOf(done, total) { return total===0 ? 0 : Math.round(Object.keys(done||{}).length/total*100); }
+function getTodayId() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const entry = SCHED.find(d => {
+    const dd = new Date(d.date); dd.setHours(0,0,0,0);
+    return dd.getTime() === today.getTime();
+  });
+  return entry ? entry.id : null;
+}
+
+function findCurrentWeekIdx() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  for (let i=0; i<WEEKS.length; i++) {
+    for (const d of WEEKS[i].days) {
+      const dd = new Date(d.date); dd.setHours(0,0,0,0);
+      if (dd >= today) return i;
+    }
+  }
+  return WEEKS.length-1;
+}
+
+function saveExpandedWeeks() {
+  localStorage.setItem('nt-weeks-2026', JSON.stringify([...expandedWeeks]));
+}
+
+function loadExpandedWeeks() {
+  const saved = localStorage.getItem('nt-weeks-2026');
+  if (saved) {
+    try { expandedWeeks = new Set(JSON.parse(saved)); return; } catch {}
+  }
+  expandedWeeks.add(findCurrentWeekIdx());
+}
+
+async function writePath(path, value) {
+  if (!db) return;
+  try {
+    if (value === null) await db.ref(path).remove();
+    else await db.ref(path).set(value);
+  } catch (e) { console.error('Firebase write error:', e); }
+}
+
+// ── Time-of-day gradient ──────────────────────────────────────────
+const TIME_THEMES = [
+  { h:[0,5],  c:['#e2e4f0','#e6e0ee','#dde2f0','#e2e4f0'], accent:'#5858a0', accentLight:'#a0a8e0', label:'night'       },
+  { h:[5,7],  c:['#f4ece0','#f0e6d8','#f2e8dc','#f4ece0'], accent:'#c07848', accentLight:'#e0a870', label:'dawn'        },
+  { h:[7,10], c:['#f4f0e4','#f0eede','#f2eede','#f4f0e4'], accent:'#887020', accentLight:'#d0b840', label:'morning'     },
+  { h:[10,13],c:['#e4eee6','#e0eaf4','#e8f0e8','#e0eaf4'], accent:'#307888', accentLight:'#68b8d0', label:'midday'      },
+  { h:[13,16],c:['#f0ece2','#ede8de','#f2eae0','#f0ece2'], accent:'#9a6840', accentLight:'#e09860', label:'afternoon'   },
+  { h:[16,18],c:['#f0e8da','#eadec8','#eeddd2','#f0e8da'], accent:'#906038', accentLight:'#d89858', label:'golden hour' },
+  { h:[18,20],c:['#eae0f2','#e4d8ec','#e8dcf0','#eae0f2'], accent:'#7058a0', accentLight:'#a888d0', label:'sunset'      },
+  { h:[20,22],c:['#e2dcea','#dadee8','#d8e6f0','#e2dcea'], accent:'#5068b0', accentLight:'#8aaae0', label:'dusk'        },
+  { h:[22,24],c:['#e2e4f0','#e6e0ee','#dde2f0','#e2e4f0'], accent:'#5858a0', accentLight:'#a0a8e0', label:'night'       },
+];
+
+let currentThemeLabel = '';
+let weatherState = null; // { tempF, label, emoji, tint, str }
+
+function hexLerp(a, b, t) {
+  const ah = parseInt(a.slice(1), 16), bh = parseInt(b.slice(1), 16);
+  const ch = (sh) => Math.round(((ah >> sh) & 0xff) + (((bh >> sh) & 0xff) - ((ah >> sh) & 0xff)) * t).toString(16).padStart(2, '0');
+  return '#' + ch(16) + ch(8) + ch(0);
+}
+
+function wmoToWeather(code) {
+  if (code === 0)                   return { label:'clear',         emoji:'☀️',  tint:'#f0e8d0', str:0    };
+  if (code === 1)                   return { label:'mainly clear',  emoji:'🌤',  tint:'#e8e4dc', str:0.05 };
+  if (code === 2)                   return { label:'partly cloudy', emoji:'⛅',  tint:'#e0e0dc', str:0.12 };
+  if (code === 3)                   return { label:'overcast',      emoji:'☁️',  tint:'#d0d0ce', str:0.24 };
+  if (code===45||code===48)         return { label:'fog',           emoji:'🌫',  tint:'#c8c8c6', str:0.20 };
+  if (code>=51&&code<=57)           return { label:'drizzle',       emoji:'🌦',  tint:'#c2cad4', str:0.22 };
+  if (code>=61&&code<=67)           return { label:'rain',          emoji:'🌧️',  tint:'#bcc4d0', str:0.28 };
+  if (code>=71&&code<=77)           return { label:'snow',          emoji:'🌨️',  tint:'#d2e2f0', str:0.22 };
+  if (code>=80&&code<=82)           return { label:'showers',       emoji:'🌦',  tint:'#bcc4d0', str:0.25 };
+  if (code===85||code===86)         return { label:'snow showers',  emoji:'🌨️',  tint:'#d2e2f0', str:0.20 };
+  if (code>=95)                     return { label:'thunderstorm',  emoji:'⛈️',  tint:'#b0b4c2', str:0.35 };
+  return                                   { label:'cloudy',        emoji:'⛅',  tint:'#d4d4d0', str:0.15 };
+}
+
+function getMoonPhase() {
+  const known = new Date('2000-01-06T18:14:00Z');
+  const CYCLE = 29.530588853;
+  const frac = (((Date.now() - known) / 86400000) % CYCLE + CYCLE) % CYCLE / CYCLE;
+  const PHASES = [
+    { name:'new moon',        emoji:'🌑', max:0.0625 },
+    { name:'waxing crescent', emoji:'🌒', max:0.25   },
+    { name:'first quarter',   emoji:'🌓', max:0.375  },
+    { name:'waxing gibbous',  emoji:'🌔', max:0.5    },
+    { name:'full moon',       emoji:'🌕', max:0.5625 },
+    { name:'waning gibbous',  emoji:'🌖', max:0.75   },
+    { name:'last quarter',    emoji:'🌗', max:0.875  },
+    { name:'waning crescent', emoji:'🌘', max:1.0    },
+  ];
+  return PHASES.find(p => frac < p.max) || PHASES[0];
+}
+
+async function fetchWeather() {
+  try {
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=42.3601&longitude=-71.0589&current=temperature_2m,weather_code&temperature_unit=celsius&timezone=America%2FNew_York');
+    const j = await r.json();
+    const w = wmoToWeather(j.current.weather_code);
+    weatherState = { temp: Math.round(j.current.temperature_2m), ...w };
+    applyTimeTheme(); // re-tint with weather
+  } catch (e) { console.warn('Weather fetch failed:', e); }
+}
+
+function renderAmbientStrip() {
+  const el = document.getElementById('ambient-strip');
+  if (!el) return;
+  const moon = getMoonPhase();
+  const parts = [moon.emoji + ' ' + moon.name];
+  if (weatherState) parts.push(`boston ${weatherState.temp}°c ${weatherState.emoji} ${weatherState.label}`);
+  if (currentThemeLabel) parts.push(currentThemeLabel);
+  el.textContent = parts.join('  ·  ');
+}
+
+function applyTimeTheme() {
+  const h = new Date().getHours();
+  const theme = TIME_THEMES.find(t => h >= t.h[0] && h < t.h[1]) || TIME_THEMES[0];
+  currentThemeLabel = theme.label;
+  const root = document.documentElement;
+  const cols = (weatherState && weatherState.str > 0)
+    ? theme.c.map(c => hexLerp(c, weatherState.tint, weatherState.str))
+    : theme.c;
+  cols.forEach((col, i) => root.style.setProperty(`--grad-${i+1}`, col));
+  root.style.setProperty('--accent', theme.accent);
+  root.style.setProperty('--accent-light', theme.accentLight);
+  renderAmbientStrip();
+}
+
+// Last day ID per book — used to trigger the book completion banner
+const BOOK_LAST_DAY = {};
+for (const d of SCHED) for (const b of d.books) BOOK_LAST_DAY[b] = d.id;
+
+function showBookBanner(book) {
+  const el = document.createElement('div');
+  el.style.cssText = [
+    'position:fixed;top:50%;left:50%;z-index:9999;',
+    'transform:translate(-50%,-50%) scale(0.88);',
+    'background:rgba(255,255,255,0.96);backdrop-filter:blur(16px);',
+    'border-radius:22px;padding:32px 48px;text-align:center;',
+    'box-shadow:0 12px 48px rgba(0,0,0,0.14);',
+    'font-family:\'Nunito\',sans-serif;pointer-events:none;',
+    'opacity:0;transition:opacity 0.35s ease,transform 0.35s ease;',
+  ].join('');
+  el.innerHTML = `
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+      color:var(--accent-light);margin-bottom:8px;">Book Complete</div>
+    <div style="font-family:'Lora',serif;font-size:26px;font-weight:500;
+      color:var(--text);line-height:1.2;">${book}</div>
+    <div style="font-size:18px;margin-top:10px;opacity:0.5;">✦</div>
+  `;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => {
+    el.style.opacity = '1';
+    el.style.transform = 'translate(-50%,-50%) scale(1)';
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transform = 'translate(-50%,-50%) scale(0.94)';
+      setTimeout(() => el.remove(), 380);
+    }, 2600);
+  });
+}
+
+function loadCachedShared() {
+  try {
+    const s = localStorage.getItem('nt-shared-cache');
+    if (s) shared = JSON.parse(s);
+  } catch {}
+}
+function saveCachedShared() {
+  try { localStorage.setItem('nt-shared-cache', JSON.stringify(shared)); } catch {}
+}
+function loadCachedConfig() {
+  try { return JSON.parse(localStorage.getItem('nt-fb-cfg') || 'null'); } catch { return null; }
+}
+function saveCachedConfig(cfg) {
+  try { localStorage.setItem('nt-fb-cfg', JSON.stringify(cfg)); } catch {}
+}
+
+async function init() {
+  applyTimeTheme();
+  setInterval(applyTimeTheme, 5 * 60 * 1000);
+  fetchWeather();
+  setInterval(fetchWeather, 30 * 60 * 1000);
+  loadExpandedWeeks();
+  loadCachedShared();  // restore last known state instantly
+  render();            // show UI with cached data — no waiting
+
+  // Use cached Firebase config if available; refresh in background
+  let cfg = loadCachedConfig();
+  if (cfg) {
+    fetch('/api/firebase-config').then(r => r.json()).then(fresh => {
+      if (fresh?.apiKey) saveCachedConfig(fresh);
+    }).catch(() => {});
+  } else {
+    try {
+      const res = await fetch('/api/firebase-config');
+      cfg = await res.json();
+      if (cfg?.apiKey) saveCachedConfig(cfg);
+    } catch (e) {
+      console.warn('Could not reach /api/firebase-config:', e);
+    }
+  }
+
+  if (!cfg?.apiKey) { renderConfigNotice(); return; }
+
+  try {
+    firebase.initializeApp(cfg);
+    db = firebase.database();
+    db.ref('nt-plan').on('value', snap => {
+      const val = snap.val();
+      if (val) {
+        shared = {
+          p1: {name: val.p1?.name||'', done: val.p1?.done||{}, notes: val.p1?.notes||{}},
+          p2: {name: val.p2?.name||'', done: val.p2?.done||{}, notes: val.p2?.notes||{}}
+        };
+        saveCachedShared(); // keep cache fresh for next visit
+      }
+      render();
+    });
+  } catch (e) {
+    console.error('Firebase init error:', e);
+    render();
+  }
+}
+
+function selectSlot(s) { setupSlot = s; render(); }
+
+function confirmSlot() {
+  if (setupSlot === null) return;
+  // Navigate to the URL with ?person=1 or ?person=2 — bookmark this!
+  window.location.href = `?person=${setupSlot + 1}`;
+}
+
+async function saveName() {
+  const input = document.getElementById('nameInput');
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val) return;
+  const pk = pkey(mySlot);
+  const lbl = document.getElementById('savingLabel');
+  if (lbl) lbl.textContent = 'Saving…';
+  await writePath(`nt-plan/${pk}/name`, val);
+  if (!db) { shared[pk] = shared[pk] || {name:'',done:{}}; shared[pk].name = val; render(); }
+}
+
+async function toggleDay(id) {
+  const pk = pkey(mySlot);
+  const isDone = !!(shared[pk]?.done || {})[id];
+  if (!shared[pk].done) shared[pk].done = {};
+  if (isDone) {
+    delete shared[pk].done[id];
+  } else {
+    shared[pk].done[id] = true;
+    pendingCheckAnim = {id, pk};
+    // show book completion banner if this was the last day of a book
+    const completedBook = Object.entries(BOOK_LAST_DAY).find(([, lastId]) => lastId === id);
+    if (completedBook) setTimeout(() => showBookBanner(completedBook[0]), 420);
+  }
+  render();
+  if (pendingCheckAnim) {
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`av-${pk}-${id}`);
+      if (el) { el.classList.add('check-pop'); setTimeout(() => el.classList.remove('check-pop'), 500); }
+      pendingCheckAnim = null;
+    });
+  }
+  await writePath(`nt-plan/${pk}/done/${id}`, isDone ? null : true);
+}
+
+function toggleWeek(wi) {
+  if (expandedWeeks.has(wi)) expandedWeeks.delete(wi);
+  else expandedWeeks.add(wi);
+  saveExpandedWeeks(); render();
+}
+
+function toggleNote(dayId) {
+  if (openNotes.has(dayId)) openNotes.delete(dayId);
+  else openNotes.add(dayId);
+  render();
+}
+
+async function saveNote(dayId) {
+  if (mySlot === null) return;
+  const pk = pkey(mySlot);
+  const el = document.getElementById(`note-${pk}-${dayId}`);
+  if (!el) return;
+  const text = el.value.trim();
+  shared[pk].notes = shared[pk].notes || {};
+  if (text) shared[pk].notes[dayId] = text;
+  else delete shared[pk].notes[dayId];
+  await writePath(`nt-plan/${pk}/notes/${dayId}`, text || null);
+}
+
+function switchSlot() {
+  // Drop back to base URL without ?person param
+  window.location.href = window.location.pathname;
+}
+
+function render() {
+  if (mySlot===null) { renderSetup(); return; }
+  if (!shared[pkey(mySlot)]?.name) { renderNameEntry(); return; }
+  renderMain();
+}
+
+function renderConfigNotice() {
+  document.getElementById('app').innerHTML = `
+    <div class="header">
+      <div class="header-eyebrow">Summer 2026</div>
+      <div class="header-title">NT Reading Plan</div>
+    </div>
+    <div class="config-notice">
+      <strong>Firebase not configured.</strong>
+      Add environment variables to your Vercel project and redeploy.
+    </div>
+  `;
+}
+
+
+function renderSetup() {
+  const p1n = shared.p1?.name || '';
+  const p2n = shared.p2?.name || '';
+  const s = setupSlot;
+  const card = (slot, name, sel) => `
+    <div onclick="selectSlot(${slot})" style="
+      flex:1; min-width:0; text-align:center; cursor:pointer;
+      background:rgba(255,255,255,0.88); backdrop-filter:blur(10px);
+      border:2px solid ${sel ? 'var(--accent)' : 'rgba(0,0,0,0.1)'};
+      border-radius:18px; padding:24px 14px;
+      transition:transform 0.12s, border-color 0.12s;
+      box-shadow:${sel ? '0 4px 24px rgba(0,0,0,0.13)' : '0 4px 24px rgba(0,0,0,0.07)'};">
+      <div style="width:52px;height:52px;border-radius:50%;
+        background:${sel ? 'var(--accent)' : '#eeeeee'};
+        color:${sel ? '#fff' : '#555'};
+        display:flex;align-items:center;justify-content:center;
+        font-size:17px;font-weight:800;margin:0 auto 12px;
+        transition:background 0.15s;">
+        ${name ? initials(name) : slot + 1}
+      </div>
+      <div style="font-size:14px;font-weight:700;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        ${name || 'Person ' + (slot + 1)}
+      </div>
+      <div style="font-size:11px;color:#999;margin-top:4px;">${name ? '✦ claimed' : 'open'}</div>
+    </div>`;
+
+  document.getElementById('app').innerHTML = `
+    <div style="min-height:calc(100vh - 120px);display:flex;flex-direction:column;
+      align-items:center;justify-content:center;text-align:center;padding:40px 0;">
+      <div style="margin-bottom:44px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+          color:#aaa;margin-bottom:10px;">Summer 2026</div>
+        <div style="font-family:'Lora',serif;font-size:34px;font-weight:500;
+          color:#111;line-height:1.2;margin-bottom:8px;">NT Reading Plan</div>
+        <div style="font-size:13px;color:#888;">260 chapters · 65 days · Jun 1 → Aug 4</div>
+      </div>
+      <div style="display:flex;flex-direction:row;gap:14px;width:100%;max-width:360px;margin-bottom:28px;">
+        ${card(0, p1n, s === 0)}
+        ${card(1, p2n, s === 1)}
+      </div>
+      <button onclick="confirmSlot()" ${s === null ? 'disabled' : ''} style="
+        padding:13px 40px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+        background:var(--accent);color:#fff;border:none;border-radius:12px;
+        cursor:${s === null ? 'default' : 'pointer'};
+        opacity:${s === null ? 0.35 : 1};
+        transition:opacity 0.15s,transform 0.1s;
+        box-shadow:0 4px 20px rgba(0,0,0,0.18);">
+        Continue →
+      </button>
+      <div style="font-size:11px;color:#bbb;margin-top:18px;max-width:260px;line-height:1.7;">
+        Bookmark your URL — progress lives in the cloud ✦
+      </div>
+    </div>
+  `;
+}
+
+function renderNameEntry() {
+  const other = mySlot === 0 ? (shared.p2?.name || '') : (shared.p1?.name || '');
+  document.getElementById('app').innerHTML = `
+    <div style="min-height:calc(100vh - 120px);display:flex;flex-direction:column;
+      align-items:center;justify-content:center;text-align:center;padding:40px 0;">
+      <div style="margin-bottom:36px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+          color:#aaa;margin-bottom:10px;">Summer 2026</div>
+        <div style="font-family:'Lora',serif;font-size:34px;font-weight:500;
+          color:#111;line-height:1.2;margin-bottom:8px;">What's your name?</div>
+        <div style="font-size:13px;color:#888;">
+          ${other ? `Reading with <strong style="color:#555;">${other}</strong> ✦` : 'Your reading partner will join soon.'}
+        </div>
+      </div>
+      <input id="nameInput" type="text" placeholder="Your name" maxlength="20" autocomplete="off" style="
+        width:100%;max-width:260px;padding:13px 18px;
+        font-family:'Nunito',sans-serif;font-size:15px;font-weight:600;
+        border:2px solid #ddd;border-radius:12px;
+        background:rgba(255,255,255,0.9);color:#111;
+        outline:none;margin-bottom:14px;text-align:center;
+        transition:border-color 0.15s;" />
+      <button onclick="saveName()" style="
+        padding:13px 40px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+        background:var(--accent);color:#fff;border:none;border-radius:12px;
+        cursor:pointer;transition:opacity 0.15s;
+        box-shadow:0 4px 20px rgba(0,0,0,0.18);">
+        Start reading →
+      </button>
+      <div id="savingLabel" style="font-size:11px;color:#bbb;margin-top:10px;min-height:16px;"></div>
+      <div style="font-size:12px;color:#ccc;margin-top:14px;">
+        <span onclick="switchSlot()" style="cursor:pointer;text-decoration:underline;color:#aaa;">← Switch slot</span>
+      </div>
+    </div>
+  `;
+  const inp = document.getElementById('nameInput');
+  inp.focus();
+  inp.addEventListener('focus', () => inp.style.borderColor = '#999');
+  inp.addEventListener('blur',  () => inp.style.borderColor = '#ddd');
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') saveName(); });
+}
+
+function renderMain() {
+  const p1 = shared.p1||{name:'',done:{}};
+  const p2 = shared.p2||{name:'',done:{}};
+  const total = SCHED.length;
+  const d1 = Object.keys(p1.done||{}).length;
+  const d2 = Object.keys(p2.done||{}).length;
+  const pct1 = pctOf(p1.done, total);
+  const pct2 = pctOf(p2.done, total);
+
+  let html = `
+    <div class="header" style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div class="header-eyebrow">Summer 2026</div>
+        <div class="header-title">NT Reading Plan</div>
+        <div class="header-sub">260 chapters · 65 days · Jun 1 – Aug 4</div>
+      </div>
+      <button onclick="switchSlot()"
+        style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;
+               background:none;border:1px solid var(--border);border-radius:8px;
+               padding:5px 10px;cursor:pointer;color:var(--muted);margin-top:4px;white-space:nowrap;">
+        switch person
+      </button>
+    </div>
+    <div class="progress-grid">
+      <div class="progress-card">
+        <div class="progress-card-top">
+          <div class="avatar-lg" style="background:var(--blue-bg);color:var(--blue);">${initials(p1.name)}</div>
+          <div>
+            <div class="name-label">${p1.name||'Person 1'}${mySlot===0?'<span class="you-tag" style="background:var(--blue-bg);color:var(--blue);">you</span>':''}</div>
+            <div class="count-label">${d1} / ${total} days · ${pct1}%</div>
+          </div>
+        </div>
+        <div class="pbar-track"><div class="pbar-fill" style="width:${pct1}%;background:var(--accent-light);"></div></div>
+      </div>
+      <div class="progress-card">
+        <div class="progress-card-top">
+          <div class="avatar-lg" style="background:var(--rose-bg);color:var(--rose);">${initials(p2.name)}</div>
+          <div>
+            <div class="name-label">${p2.name||'Person 2'}${mySlot===1?'<span class="you-tag" style="background:var(--rose-bg);color:var(--rose);">you</span>':''}</div>
+            <div class="count-label">${d2} / ${total} days · ${pct2}%</div>
+          </div>
+        </div>
+        <div class="pbar-track"><div class="pbar-fill" style="width:${pct2}%;background:var(--accent-light);"></div></div>
+      </div>
+    </div>
+  `;
+
+  const todayId = getTodayId();
+
+  for (let wi=0; wi<WEEKS.length; wi++) {
+    const week = WEEKS[wi];
+    const isExp = expandedWeeks.has(wi);
+    const wt = week.days.length;
+    const w1done = week.days.filter(d=>(p1.done||{})[d.id]).length;
+    const w2done = week.days.filter(d=>(p2.done||{})[d.id]).length;
+    const phasesSeen = [...new Set(week.days.map(d=>d.phase))];
+
+    html += `
+      <div class="week"><div class="week-card">
+        <div class="week-header" onclick="toggleWeek(${wi})">
+          <div class="week-header-left">
+            <span class="week-num">Week ${week.wk}</span>
+            <span class="week-dates">${fmtShort(week.days[0].date)} – ${fmtShort(week.days[wt-1].date)}</span>
+            ${phasesSeen.map(p=>`<span class="phase-chip" style="color:${PHASE_COLORS[p]};background:${PHASE_COLORS[p]}18;">${PHASE_LABELS[p]}</span>`).join('')}
+          </div>
+          <div class="week-header-right">
+            <span class="mini-progress">
+              <span style="color:var(--blue);">${w1done}</span>
+              <span style="color:var(--hint);">/</span>
+              <span style="color:var(--rose);">${w2done}</span>
+              <span style="color:var(--hint);">&thinsp;of ${wt}</span>
+            </span>
+            <span class="chevron ${isExp?'open':''}">▾</span>
+          </div>
+        </div>
+    `;
+
+    if (isExp) {
+      html += `<div class="week-body">`;
+      for (const d of week.days) {
+        const done1 = !!(p1.done||{})[d.id];
+        const done2 = !!(p2.done||{})[d.id];
+        const bothDone = done1 && done2;
+        const isToday = d.id === todayId;
+        const pc = PHASE_COLORS[d.phase];
+        const av1bg = done1 ? 'var(--accent-light)' : 'transparent';
+        const av1border = done1 ? 'none' : '1.5px solid rgba(0,0,0,0.13)';
+        const av2bg = done2 ? 'var(--accent-light)' : 'transparent';
+        const av2border = done2 ? 'none' : '1.5px solid rgba(0,0,0,0.13)';
+        const chkSVG = `<svg width="12" height="9" viewBox="0 0 12 9" fill="none"><polyline points="1.5,4.5 4.5,7.5 10.5,1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+        const note1 = (p1.notes||{})[d.id] || '';
+        const note2 = (p2.notes||{})[d.id] || '';
+        const hasNote = note1 || note2;
+        const noteOpen = openNotes.has(d.id);
+
+        // note panel html
+        let notePanelHtml = '';
+        if (noteOpen) {
+          const myNote  = mySlot===0 ? note1 : mySlot===1 ? note2 : '';
+          const theirNote = mySlot===0 ? note2 : mySlot===1 ? note1 : '';
+          const theirName = mySlot===0 ? (p2.name||'Person 2') : (p1.name||'Person 1');
+          const myPk = mySlot !== null ? pkey(mySlot) : '';
+          notePanelHtml = `<div class="note-panel">`;
+          if (mySlot !== null) {
+            notePanelHtml += `
+              <div class="note-entry">
+                <div class="note-label">Your note</div>
+                <textarea class="note-textarea" id="note-${myPk}-${d.id}"
+                  placeholder="Write your thoughts…"
+                  onblur="saveNote(${d.id})"
+                >${myNote}</textarea>
+              </div>`;
+          }
+          notePanelHtml += `
+              <div class="note-entry">
+                <div class="note-label">${theirName}</div>
+                ${theirNote
+                  ? `<div class="note-text">${theirNote.replace(/</g,'&lt;')}</div>`
+                  : `<div class="note-empty">Nothing yet</div>`}
+              </div>
+            </div>`;
+        }
+
+        html += `
+          <div class="day-row${bothDone?' both-done':''}${isToday?' today-row':''}">
+            <div class="day-date">
+              <div class="day-weekday">${WDAYS[d.date.getDay()]}</div>
+              <div class="day-datenum">${fmtShort(d.date)}</div>
+            </div>
+            <div class="phase-pip" style="background:${pc};"></div>
+            <div class="day-reading${bothDone?' faded':''}">${d.reading}</div>
+            <div class="day-checks">
+              <button class="note-toggle${hasNote?' has-note':''}"
+                onclick="toggleNote(${d.id})" title="${noteOpen?'Close notes':'Open notes'}">
+                ${noteOpen ? '✕' : '✎ note'}
+              </button>
+              <div class="check-avatar ${mySlot===0?'mine':'not-mine'}"
+                id="av-p1-${d.id}"
+                style="background:${av1bg};border:${av1border};"
+                ${mySlot===0?`onclick="toggleDay(${d.id})"`:''}
+                title="${p1.name||'Person 1'}">
+                ${done1?chkSVG:''}
+              </div>
+              <div class="check-avatar ${mySlot===1?'mine':'not-mine'}"
+                id="av-p2-${d.id}"
+                style="background:${av2bg};border:${av2border};"
+                ${mySlot===1?`onclick="toggleDay(${d.id})"`:''}
+                title="${p2.name||'Person 2'}">
+                ${done2?chkSVG:''}
+              </div>
+            </div>
+          </div>
+          ${notePanelHtml}
+        `;
+      }
+      html += `</div>`;
+    }
+    html += `</div></div>`;
+  }
+
+  document.getElementById('app').innerHTML = html;
+}
+
+window.selectSlot  = selectSlot;
+window.confirmSlot = confirmSlot;
+window.saveName    = saveName;
+window.toggleDay   = toggleDay;
+window.toggleWeek  = toggleWeek;
+window.switchSlot  = switchSlot;
+window.toggleNote  = toggleNote;
+window.saveNote    = saveNote;
+
+init();
+</script>
 </body>
-</html>
+</html> -->
